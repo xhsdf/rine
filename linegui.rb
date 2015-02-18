@@ -43,8 +43,6 @@ module LineGui
 			
 			mid = Gtk::VBox.new(false, 0)
 			mid.pack_start(label, false, false, VPADDING)
-
-			#~ box = Gtk::HBox.new(false, 0)
 			mid_ebox = Gtk::EventBox.new()
 			mid_ebox.modify_bg(Gtk::StateType::NORMAL, @box_color)
 			mid_ebox.add(mid)			
@@ -59,9 +57,6 @@ module LineGui
 			end
 			
 			valign_avatar =  Gtk::Alignment.new(0, 0, 0, 0)
-			
-			#~ self.add(box)
-			#~ self.modify_bg(Gtk::StateType::NORMAL, @bg_color)
 		end
 		
 		
@@ -173,7 +168,6 @@ module LineGui
 		def open_conversation(id, background = true)
 			unless @conversations[id] == nil or @conversations[id].swin.parent != nil
 				@notebook.append_page(@conversations[id].swin, Gtk::Label.new(management.get_name(id)))
-				@conversations[id].swin.show_all()
 			end
 			
 			@notebook.set_page(@notebook.page_num(@conversations[id].swin)) unless background
@@ -207,32 +201,23 @@ module LineGui
 			vport.shadow_type = Gtk::SHADOW_NONE
 			vport.add(chat_ebox)
 			@swin.add(vport)
-			#~ @swin.add_with_viewport(chat_ebox)
 			@swin.show_all()
 			
 			@label = ConversationLabel.new(@id, @gui)
 			
-			@swin.signal_connect('expose_event') do # TODO ????
-				@label.highlight(false)
-			end
+			#~ @swin.signal_connect('expose_event') do # TODO ????
+				#~ @label.highlight(false)
+			#~ end
 			
 			@swin.show_all()
 			
-			
-			Thread.new do
-				while true
-					check_messages()
-				end
-			end
-		end
 		
-		def check_messages()
+		end	
+		
+		def add_message(message, log = false)
 			scroll_to_bottom = @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
 			
-			scrollbar_pos = @swin.vadjustment.value.to_i
-			
-			while (message = @new_messages.shift) != nil
-				#~ while Gtk.events_pending? do main_iteration_do(blocking = false) end
+			scrollbar_pos = @swin.vadjustment.value
 				message_box = LineGuiConversationMessage.new(message, @gui)
 				message_box.show_all
 			
@@ -240,44 +225,19 @@ module LineGui
 				halign = user_is_sender ? Gtk::Alignment.new(1, 0, 0, 0) : Gtk::Alignment.new(0, 0, 0, 0)
 				halign.add(message_box)
 				
-				#~ eb = Gtk::EventBox.new
-				#~ eb.add(halign)
-				#~ eb.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND_LOG))
-				#~ eb.show_all()
+				halign.signal_connect("size-allocate") do
+					if scroll_to_bottom
+							scroll_to_bottom()
+					end
+				end
+						
 				halign.show_all()
-				#~ @swin.show_all()# unless log
-				
-				#~ if log
-					#~ puts "end"
-					@chat_box.pack_start(halign, false, false, 20)
-				#~ else
-					#~ puts "start"
-					#~ @chat_box.pack_start(halign, false, false, 20)
-				#~ end
-				
-				#~ @chat_box.show_all()
-			end
-			sleep 1
-				
-			if scroll_to_bottom and @swin.vadjustment.value.to_i >= scrollbar_pos.to_i# and not log
-				scroll_to_bottom()
-			end
+				@chat_box.pack_start(halign, false, false, 20)
 		end
 		
-		
-		def add_message(message, log = false)
-			new_messages << message			
-		end
-		
-		def scroll_to_bottom()
-			while Gtk.events_pending? do main_iteration_do(blocking = false) end			
+		def scroll_to_bottom()						
 			adj = @swin.vadjustment
 			adj.set_value(adj.upper - adj.page_size)
-			#~ @swin.vadjustment = adj
-			#puts "#{adj.upper} - #{adj.page_size}"
-			
-			
-			#~ @swin.vadjustment.set_value(@swin.vadjustment.upper - @swin.vadjustment.page_size)
 		end
 	end
 	
@@ -300,14 +260,7 @@ module LineGui
 		
 			box = Gtk::VBox.new(false, 2)
 			avatar = Gtk::Image.new
-			avatar.pixbuf = Gdk::Pixbuf.new(@gui.management.get_avatar(message.from), AVATAR_SIZE, AVATAR_SIZE)
-			#~ entry = Gtk::Entry.new()
-			#~ entry.set_text(message.text)
-			
-			
-			
-			
-			
+			avatar.pixbuf = Gdk::Pixbuf.new(@gui.management.get_avatar(message.from), AVATAR_SIZE, AVATAR_SIZE)			
 			
 			avatar_container = Gtk::VBox.new(false, 2)
 			valign_avatar =  Gtk::Alignment.new(0, 0, 0, 0)
@@ -319,16 +272,8 @@ module LineGui
 			halign_name.add(Gtk::Label.new(sender_info))
 			message_container.pack_start(halign_name, false, false)
 					
-			if message.text != nil
-				#~ buffer = Gtk::TextBuffer.new
-				#~ text = Gtk::TextView.new(buffer)
-				#~ buffer.insert(text.get_iter_at_position(0, 0)[0], message.text)
-				#~ text.wrap_mode = Gtk::TextTag::WRAP_WORD_CHAR
-				#~ text.editable = false
-				#~ text.cursor_visible = false
-				
-				text = Gtk::Label.new()
-				
+			if message.text != nil				
+				text = Gtk::Label.new()				
 				
 				ebox = LineLabelBox.new(text, Gdk::Color.parse(user_is_sender ? COLOR_TEXTBOX_SELF : COLOR_TEXTBOX), Gdk::Color.parse(BACKGROUND), user_is_sender)
 				
@@ -344,9 +289,7 @@ module LineGui
 					@gui.management.open_url(url)
 					true
 				end
-				
-				
-				
+								
 				text.set_markup(message_string_with_urls)
 				#~ text.set_markup("<span background = 'black' foreground='white'>#{message.text}</span>")
 				text.wrap = true
@@ -412,7 +355,6 @@ module LineGui
 			if highlight
 				self.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse("lightgreen"))
 			else
-				#~ self.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse("white"))
 				self.modify_bg(Gtk::StateType::NORMAL, Gtk::Widget.default_style.bg(Gtk::StateType::NORMAL))
 			end
 		end
