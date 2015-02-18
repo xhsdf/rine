@@ -227,7 +227,7 @@ module LineGui
 		end
 		
 		def check_messages()
-			#~ scroll_to_bottom = @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
+			scroll_to_bottom = @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
 			
 			scrollbar_pos = @swin.vadjustment.value.to_i
 			
@@ -259,8 +259,7 @@ module LineGui
 			end
 			sleep 1
 				
-			#~ if scroll_to_bottom and # and not log
-			if @swin.vadjustment.value.to_i >= scrollbar_pos.to_i
+			if scroll_to_bottom and @swin.vadjustment.value.to_i >= scrollbar_pos.to_i# and not log
 				scroll_to_bottom()
 			end
 		end
@@ -271,7 +270,7 @@ module LineGui
 		end
 		
 		def scroll_to_bottom()
-			while Gtk.events_pending? do main_iteration_do(blocking = false) end
+			while Gtk.events_pending? do main_iteration_do(blocking = false) end			
 			adj = @swin.vadjustment
 			adj.set_value(adj.upper - adj.page_size)
 			#~ @swin.vadjustment = adj
