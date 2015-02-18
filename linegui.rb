@@ -189,12 +189,13 @@ module LineGui
 
 
 	class LineGuiConversation
-		attr_reader :id, :swin, :chat_box, :gui, :label
+		attr_reader :id, :swin, :chat_box, :gui, :label, :new_messages
 		
 		def initialize(id, gui)
 			@id = id
 			@gui = gui
 			@chat_box = Gtk::VBox.new(false, 2)
+			@new_messages = []
 			
 			chat_ebox = Gtk::EventBox.new()
 			chat_ebox.add(@chat_box)
@@ -216,48 +217,65 @@ module LineGui
 			end
 			
 			@swin.show_all()
+			
+			
+			Thread.new do
+				while true
+					check_messages()
+				end
+			end
 		end
 		
-		
-		def add_message(message, log = false)		
-			while Gtk.events_pending? do main_iteration_do(blocking = false) end
-			message_box = LineGuiConversationMessage.new(message, @gui)
-			message_box.show_all
-		
-			user_is_sender = message.from == @gui.management.get_own_user_id()
-			halign = user_is_sender ? Gtk::Alignment.new(1, 0, 0, 0) : Gtk::Alignment.new(0, 0, 0, 0)
-			halign.add(message_box)
+		def check_messages()
+			#~ scroll_to_bottom = @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
 			
-			#~ eb = Gtk::EventBox.new
-			#~ eb.add(halign)
-			#~ eb.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND_LOG))
-			#~ eb.show_all()
-			halign.show_all()
-			#~ @swin.show_all()# unless log
-			scroll_to_bottom = @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
+			scrollbar_pos = @swin.vadjustment.value.to_i
 			
-			#~ if log
-				#~ puts "end"
-				@chat_box.pack_start(halign, false, false, 20)
-			#~ else
-				#~ puts "start"
-				#~ @chat_box.pack_start(halign, false, false, 20)
-			#~ end
+			while (message = @new_messages.shift) != nil
+				#~ while Gtk.events_pending? do main_iteration_do(blocking = false) end
+				message_box = LineGuiConversationMessage.new(message, @gui)
+				message_box.show_all
 			
-			@chat_box.show_all()
-			
-			
-			if scroll_to_bottom# and not log
+				user_is_sender = message.from == @gui.management.get_own_user_id()
+				halign = user_is_sender ? Gtk::Alignment.new(1, 0, 0, 0) : Gtk::Alignment.new(0, 0, 0, 0)
+				halign.add(message_box)
+				
+				#~ eb = Gtk::EventBox.new
+				#~ eb.add(halign)
+				#~ eb.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND_LOG))
+				#~ eb.show_all()
+				halign.show_all()
+				#~ @swin.show_all()# unless log
+				
+				#~ if log
+					#~ puts "end"
+					@chat_box.pack_start(halign, false, false, 20)
+				#~ else
+					#~ puts "start"
+					#~ @chat_box.pack_start(halign, false, false, 20)
+				#~ end
+				
+				#~ @chat_box.show_all()
+			end
+			sleep 1
+				
+			#~ if scroll_to_bottom and # and not log
+			if @swin.vadjustment.value.to_i >= scrollbar_pos.to_i
 				scroll_to_bottom()
 			end
 		end
 		
+		
+		def add_message(message, log = false)
+			new_messages << message			
+		end
+		
 		def scroll_to_bottom()
-			#~ while Gtk.events_pending? do main_iteration_do(blocking = false) end			
+			while Gtk.events_pending? do main_iteration_do(blocking = false) end
 			adj = @swin.vadjustment
 			adj.set_value(adj.upper - adj.page_size)
-			@swin.vadjustment = adj
-			#~ puts "#{adj.upper} - #{adj.page_size}"
+			#~ @swin.vadjustment = adj
+			#puts "#{adj.upper} - #{adj.page_size}"
 			
 			
 			#~ @swin.vadjustment.set_value(@swin.vadjustment.upper - @swin.vadjustment.page_size)
