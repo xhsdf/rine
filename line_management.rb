@@ -38,41 +38,41 @@ class Management
 		@logger = LineLogger::Logger.new(self, "./logs")
 		Thread.new do gui.run() end
 		
-		gui.add_user(0)
-		gui.add_user(4)
-		add_log(0)
-		add_log(4)
+		gui.add_user("a0")
+		gui.add_user("a4")
+		add_log("a0")
+		add_log("a0")
 	
 	
 		if true
-			#~ sleep 2
-			#~ add_message(LineMessage::Message.new(2, 4, 9001, Time.now.to_i, "Poi?", nil, nil))
-			#~ add_message(LineMessage::Message.new(1, 4, 9001, Time.now.to_i, "Poi?", nil, nil))
-			#~ add_message(LineMessage::Message.new(0, 4, 9001, Time.now.to_i, "Poi?", nil, nil))
-			#~ 
-			#~ sleep 2
-			#~ add_message(LineMessage::Message.new(2, 0, 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
-			#~ sleep 1
-			#~ add_message(LineMessage::Message.new(0, 2, 9001, Time.now.to_i, "Poi?", nil, nil))
-			#~ #~ gui.add_message(LineMessage::Message.new(0, 2, 9001, Time.now.to_i, "Poi?Poi?Poi?Poi?Poi?Poi?Poi?Poi?", nil, nil))
-			#~ add_message(LineMessage::Message.new(2, 0, 9001, Time.now.to_i, "Poi?", nil, nil))
-			#~ sleep 1	
-			#~ add_message(LineMessage::Message.new(2, 0, 9001, Time.now.to_i, "Das http://oreno.soup.io/ ist ein Test<>: http://asset-5.soup.io/asset/9978/6216_54e9.jpeg", nil, nil))
-			#~ add_message(LineMessage::Message.new(2, 0, 9001, Time.now.to_i, "Am besten ist es, den Leuten Geschichten zu erzählen, die absolut sinnlos sind, so wie damals, als ich mit der Fähre nach Shelbyville rübergefahren bin. Alles, was ich brauchte, war ein neuer Absatz für meinen Schuh, also beschloss ich nach Morganville rüber zu fahren, was zu damaliger Zeit aber noch Shelbyville hieß. Da hab ich mir eine Zwiebel an den Gürtel gehängt, das war damals übrigens üblich. Und die Überfahrt hat 5 Cent gekostet und auf dem 5 Cent Stück war damals noch ein wunderschöner Hummelschwarm abgebildet. Gib mir 5 Hummelschwärme für nen Viertel-Dollar, hieß es. Wo waren wir stehen geblieben?  Achja, der springende Punkt war, dass ich ne Zwiebel am Gürtel hatte, was damals absolut üblich war. Es gab keine weißen Zwiebeln, weil Krieg war.", nil, nil))
-			#~ sleep 2	
-			#~ add_message(LineMessage::Message.new(1, 2, 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
-			#~ add_message(LineMessage::Message.new(2, 1, 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
+			sleep 2
+			add_message(LineMessage::Message.new("a2", "a4", 9001, Time.now.to_i, "Poi?", nil, nil))
+			add_message(LineMessage::Message.new("a1", "a4", 9001, Time.now.to_i, "Poi?", nil, nil))
+			add_message(LineMessage::Message.new("a0", "a4", 9001, Time.now.to_i, "Poi?", nil, nil))
+			
+			sleep 2
+			add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
+			sleep 1
+			add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, "Poi?", nil, nil))
+			#~ gui.add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, "Poi?Poi?Poi?Poi?Poi?Poi?Poi?Poi?", nil, nil))
+			add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, "Poi?", nil, nil))
+			sleep 1	
+			add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, "Das http://oreno.soup.io/ ist ein Test<>: http://asset-5.soup.io/asset/9978/6216_54e9.jpeg", nil, nil))
+			add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, "Am besten ist es, den Leuten Geschichten zu erzählen, die absolut sinnlos sind, so wie damals, als ich mit der Fähre nach Shelbyville rübergefahren bin. Alles, was ich brauchte, war ein neuer Absatz für meinen Schuh, also beschloss ich nach Morganville rüber zu fahren, was zu damaliger Zeit aber noch Shelbyville hieß. Da hab ich mir eine Zwiebel an den Gürtel gehängt, das war damals übrigens üblich. Und die Überfahrt hat 5 Cent gekostet und auf dem 5 Cent Stück war damals noch ein wunderschöner Hummelschwarm abgebildet. Gib mir 5 Hummelschwärme für nen Viertel-Dollar, hieß es. Wo waren wir stehen geblieben?  Achja, der springende Punkt war, dass ich ne Zwiebel am Gürtel hatte, was damals absolut üblich war. Es gab keine weißen Zwiebeln, weil Krieg war.", nil, nil))
+			sleep 2	
+			add_message(LineMessage::Message.new("a1", "a2", 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
+			add_message(LineMessage::Message.new("a2", "a1", 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
 		end
 		
 		
 		while true do
 			sleep 5
-			add_message(LineMessage::Message.new(0, 2, 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
+			add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
 			sleep 1
-			add_message(LineMessage::Message.new(0, 2, 9001, Time.now.to_i, "Poi?", nil, nil))
-			add_message(LineMessage::Message.new(0, 2, 9001, Time.now.to_i, "Poi?", nil, nil))
+			add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, "Poi?", nil, nil))
+			add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, "Poi?", nil, nil))
 			sleep 1
-			add_message(LineMessage::Message.new(2, 0, 9001, Time.now.to_i, "Poi?", nil, nil))
+			add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, "Poi?", nil, nil))
 		end
 		
 		
@@ -89,24 +89,28 @@ class Management
 	
 	
 	def get_users(group_id)
-		return 0, 1, 2, 3 if group_id == 4
+		return "a0", "a1", "a2", "a3" if group_id == "a4"
 		return []
 	end
 
 	def get_own_user_id()
-		return 2
+		return "a2"
 	end
 	
 
 	def get_name(user_id)
-		return ["Poi", "Hans", "Peter", "Frank", "Burgdorf"][user_id]
+		return "Poi" if  user_id == "a0"
+		return "Hans" if  user_id == "a1"
+		return "Peter" if  user_id == "a2"
+		return "Frank" if  user_id == "a3"
+		return "Burgdorf" if  user_id == "a4"
 	end
 	
 
 	def get_avatar(user_id)
 		#~ sleep 2
-		return "./files/poi.jpg" if user_id == 0
-		return "./files/avatar2.jpg" if user_id == 1
+		return "./files/poi.jpg" if user_id == "a0"
+		return "./files/avatar2.jpg" if user_id == "a1"
 		return "./files/avatar.png"
 	end
 	
@@ -152,7 +156,7 @@ class Management
 		
 	def send_message(to, text, sticker = nil, image = nil)
 		puts text
-		message_id = 9001
+		message_id = "9001"
 		
 		add_message(LineMessage::Message.new(get_own_user_id(), to, message_id, Time.now.to_i, text, sticker, image))
 	end

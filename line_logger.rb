@@ -50,7 +50,7 @@ module LineLogger
 							image = LineMessage::Image.new(image.attributes["id"], image.attributes["url"], image.attributes["preview_url"])
 						end
 						
-						messages << LineMessage::Message.new(from.to_i, to.to_i, id.to_i, timestamp.to_i, text, sticker, image)
+						messages << LineMessage::Message.new(from, to, id, timestamp.to_i, text, sticker, image)
 						
 					end
 				end
