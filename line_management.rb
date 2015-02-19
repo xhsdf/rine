@@ -3,6 +3,8 @@
 require './linegui.rb'
 require './line_logger.rb'
 require './line_message.rb'
+require 'fileutils'
+require 'net/http'
 
 def main()
 	Management.new().run()
@@ -10,6 +12,8 @@ end
 
 
 class Management
+	PATH_STICKER = "./sticker"
+	LINE_STICKER_BASE_URL = "http://dl.stickershop.line.naver.jp/products"
 	attr_reader :gui, :logger
 	
 	def open_uri(uri)
@@ -30,7 +34,7 @@ class Management
 	
 	def run()
 		@gui = LineGui::LineGuiMain.new(self)
-		@logger = LineLogger::Logger.new(self, "/home/xhsdf/programming/ruby/line/logs")
+		@logger = LineLogger::Logger.new(self, "./logs")
 		Thread.new do gui.run() end
 		
 		gui.add_user(0)
@@ -62,7 +66,7 @@ class Management
 		
 		while true do
 			sleep 5
-			add_message(LineMessage::Message.new(0, 2, 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 7), nil))
+			add_message(LineMessage::Message.new(0, 2, 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164179), nil))
 			sleep 1
 			add_message(LineMessage::Message.new(0, 2, 9001, Time.now.to_i, "Poi?", nil, nil))
 			add_message(LineMessage::Message.new(0, 2, 9001, Time.now.to_i, "Poi?", nil, nil))
@@ -100,15 +104,30 @@ class Management
 
 	def get_avatar(user_id)
 		#~ sleep 2
-		return "/home/xhsdf/programming/ruby/line/files/poi.jpg" if user_id == 0
-		return "/home/xhsdf/programming/ruby/line/files/avatar2.jpg" if user_id == 1
-		return "/home/xhsdf/programming/ruby/line/files/avatar.png"
+		return "./files/poi.jpg" if user_id == 0
+		return "./files/avatar2.jpg" if user_id == 1
+		return "./files/avatar.png"
 	end
 	
 
 	def get_sticker(message)
-		#~ sleep 3
-		return "/home/xhsdf/programming/ruby/line/files/sticker.png"
+		set = message.sticker.set_id.to_i
+		ver = message.sticker.version.to_i
+		id = message.sticker.id.to_i
+
+		path = "#{PATH_STICKER}/#{set}/#{ver}/"
+		filename = "#{path}#{id}.png"
+		if !File.exists?(filename)
+			stickerurl = "#{LINE_STICKER_BASE_URL}/#{ver/1000000}/#{ver/1000}/#{ver%1000}/#{set}/WindowsPhone/stickers/#{id}.png"
+			puts "Downloading #{stickerurl}"
+
+			unless File.directory?(path)
+				FileUtils.mkdir_p(path)
+			end
+			
+			File.open(filename, "wb") {|f| f.write(Net::HTTP.get(URI.parse(stickerurl)))}
+		end
+		return filename
 	end
 	
 	
@@ -125,8 +144,8 @@ class Management
 	
 
 	def get_image(message, preview = false)
-		return "/home/xhsdf/programming/ruby/line/files/image_preview.png" if preview
-		return "/home/xhsdf/programming/ruby/line/files/image.png"
+		return "./files/image_preview.png" if preview
+		return "./files/image.png"
 	end
 		
 		
