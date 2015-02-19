@@ -15,7 +15,7 @@ module LineGui
 	HPADDING = 10
 	VPADDING = 10
 
-	STICKER_SIZE = 196
+	#~ STICKER_SIZE = 196
 	AVATAR_SIZE = 48
 
 	TEXT_AREA_WIDTH = 480
@@ -25,6 +25,11 @@ module LineGui
 
 		def initialize(from, to, id, timestamp, text = nil, sticker = nil, image = nil)
 			@from, @to, @id, @timestamp, @text, @sticker, @image = from, to, id, timestamp, text, sticker, image
+		end
+		
+		
+		def to_xml()
+			return "<message id=\"#{@id}\" from=\"#{@from}\" to=\"#{@to}\" timestamp=\"#{@timestamp}\"#{sticker != nil ? " sticker=\"#{@sticker.set_id}-#{@sticker.version}-#{@sticker.id}\"" : ""}#{@image != nil ? " image=\"#{@image.id}\"" : ""}>#{@text != nil ? @text.encode(:xml => :text) : ""}</message>"
 		end
 	end
 
@@ -94,6 +99,14 @@ module LineGui
 	end
 
 
+	class LineStickerSet
+		attr_reader :id, :version, :stickers
+		def initialize(id, version, stickers)
+			@id, @version, @stickers = id, version, stickers
+		end
+	end
+
+
 	class LineSticker
 		attr_reader :set_id, :version, :id
 		def initialize(set_id, version, id)
@@ -103,15 +116,14 @@ module LineGui
 	
 
 	class LineGuiMain
-		attr_reader :management, :notebook, :conversations, :start_tab
+		attr_reader :management, :conversations, :start_tab, :chat_tab
 		
 		def initialize(management)
 			@management = management
-			@notebook = Gtk::Notebook.new
+			#~ @notebook = Gtk::Notebook.new
 			@conversations = {}
 			@start_tab = Gtk::VBox.new(false, 0)
-			
-			notebook.append_page(@start_tab, Gtk::Label.new("start"))
+			@chat_tab = Gtk::VBox.new(false, 0)
 		end
 		
 		
@@ -141,7 +153,7 @@ module LineGui
 					@conversations[id].label.highlight()
 				end				
 			end
-			open_conversation(id) # TODO: @conversations[id].open
+			#~ open_conversation(id) # TODO: @conversations[id].open
 			#~ @conversations[id].scroll_to_bottom
 			
 		end
@@ -157,7 +169,14 @@ module LineGui
 			
 			window.set_default_size(800, 600)
 			
-			window.add(@notebook)
+			main_box = Gtk::HBox.new(false, 0)
+			
+			main_box.pack_start(@start_tab, false, false, 0)
+			main_box.pack_start(@chat_tab, true, true, 0)
+			
+			
+			
+			window.add(main_box)
 			
 			window.show_all
 
@@ -166,11 +185,16 @@ module LineGui
 		
 		
 		def open_conversation(id, background = true)
-			unless @conversations[id] == nil or @conversations[id].swin.parent != nil
-				@notebook.append_page(@conversations[id].swin, Gtk::Label.new(management.get_name(id)))
+			if @conversations[id] != nil
+				#~ @notebook.append_page(@conversations[id].swin, Gtk::Label.new(management.get_name(id)))
+				if @conversations[id].box.parent != nil
+					@chat_tab.remove(@conversations[id].box)
+				else
+					@chat_tab.pack_start(@conversations[id].box, true, true, 5)
+				end
 			end
 			
-			@notebook.set_page(@notebook.page_num(@conversations[id].swin)) unless background
+			#~ @notebook.set_page(@notebook.page_num(@conversations[id].swin)) unless background
 		end
 		
 		
@@ -178,12 +202,17 @@ module LineGui
 			conversation = @conversations[user_or_group_id]
 			notebook.remove(convo.swin)
 			@conversations[user_or_group_id] = nil
-		end	
+		end
+		
+		
+		def send_message(to, text, sticker, image)
+			@management.send_message(to, text, sticker, image)
+		end
 	end
 
 
 	class LineGuiConversation
-		attr_reader :id, :swin, :chat_box, :gui, :label, :new_messages
+		attr_reader :id, :swin, :chat_box, :gui, :label, :new_messages, :box
 		
 		def initialize(id, gui)
 			@id = id
@@ -195,13 +224,47 @@ module LineGui
 			chat_ebox.add(@chat_box)
 			chat_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
 			
+			@box = Gtk::VBox.new(false, 0)
+			
+			input_box = Gtk::VBox.new(false, 0)
+			
+			input_buttons_box = Gtk::HBox.new(false, 0)
+			halign = Gtk::Alignment.new(1, 0, 0, 0)
+			send_button = Gtk::Button.new("Send")
+			halign.add(send_button)
+			input_buttons_box.add(halign)
+			input_box.pack_start(input_buttons_box, false, false, 0)
+			
+			input_textview = Gtk::TextView.new
+			input_textview.set_size_request(0, 25)
+			input_box.pack_start(input_textview, true, true, 0)
+			
+			
+						
+			send_button.signal_connect('clicked') do |widget, event|
+				text = input_textview.buffer.text
+				sticker = nil
+				image = nil
+				
+				if not text.nil? and text.empty?
+					text = nil
+				end
+				unless text.nil? and sticker.nil? and image.nil?
+					@gui.send_message(@id, text, sticker, image)
+				end
+				
+				input_textview.buffer.delete(input_textview.buffer.start_iter, input_textview.buffer.end_iter)
+			end
+			
+			
+			
+			
 			@swin = Gtk::ScrolledWindow.new
 			@swin.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC)
 			vport = Gtk::Viewport.new(nil, nil)
 			vport.shadow_type = Gtk::SHADOW_NONE
 			vport.add(chat_ebox)
 			@swin.add(vport)
-			@swin.show_all()
 			
 			@label = ConversationLabel.new(@id, @gui)
 			
@@ -209,9 +272,10 @@ module LineGui
 				#~ @label.highlight(false)
 			#~ end
 			
-			@swin.show_all()
+			@box.pack_start(@swin, true, true, 0)
+			@box.pack_start(input_box, false, false, 0)
 			
-		
+			@box.show_all()		
 		end	
 		
 		def add_message(message, log = false)
@@ -226,7 +290,7 @@ module LineGui
 				halign.add(message_box)
 				
 				halign.signal_connect("size-allocate") do
-					if scroll_to_bottom
+					if scroll_to_bottom or log
 							scroll_to_bottom()
 					end
 				end
@@ -260,7 +324,10 @@ module LineGui
 		
 			box = Gtk::VBox.new(false, 2)
 			avatar = Gtk::Image.new
-			avatar.pixbuf = Gdk::Pixbuf.new(@gui.management.get_avatar(message.from), AVATAR_SIZE, AVATAR_SIZE)			
+			
+			Thread.new do
+				avatar.pixbuf = Gdk::Pixbuf.new(@gui.management.get_avatar(message.from), AVATAR_SIZE, AVATAR_SIZE)
+			end
 			
 			avatar_container = Gtk::VBox.new(false, 2)
 			valign_avatar =  Gtk::Alignment.new(0, 0, 0, 0)
@@ -279,7 +346,7 @@ module LineGui
 				
 				message_string = message.text.encode(:xml => :text)
 				message_string_with_urls = message_string
-				message_string.scan(URI.regexp) do |url_match|
+				message_string.scan(URI.regexp(['http', 'https'])) do |url_match|
 					url = url_match.join
 					url.sub!(/http(?!:\/\/)/, 'http://')
 					message_string_with_urls = message_string_with_urls.gsub(url, "<a href=\"#{url}\">#{url}</a>")
@@ -310,7 +377,9 @@ module LineGui
 			end
 			if message.sticker != nil
 				sticker = Gtk::Image.new
-				sticker.pixbuf = Gdk::Pixbuf.new(@gui.management.get_sticker(message.sticker.set_id, message.sticker.version, message.sticker.id), STICKER_SIZE, STICKER_SIZE)
+				Thread.new do
+					sticker.pixbuf = Gdk::Pixbuf.new(@gui.management.get_sticker(message.sticker.set_id, message.sticker.version, message.sticker.id))
+				end
 				message_container.add(sticker)		
 			end
 			
