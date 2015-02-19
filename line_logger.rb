@@ -1,13 +1,15 @@
 #!/usr/bin/ruby
 
 
-require './linegui.rb'
 
 module LineLogger
 	require 'pathname'
 	require 'fileutils'
 	#~ require 'uri'
 	require "rexml/document"
+	
+	require './linegui.rb'
+	require './line_message.rb'
 
 	class Logger
 		attr_reader :management, :folder
@@ -42,33 +44,24 @@ module LineLogger
 			messages = []
 			begin
 				File.readlines("#{folder}/#{id}.log").reverse.each_with_index do |line, index|
-					if limit == nil or index < limit
-						#~ line_parts = line.split('|')
-						#~ id = line_parts.shift.to_i
-						#~ to = line_parts.shift.to_i
-						#~ from = line_parts.shift.to_i
-						#~ timestamp = line_parts.shift.to_i
-						#~ sticker = line_parts.shift.split('-')
-						#~ image = line_parts.shift
-						#~ image.empty? ? nil : image.to_i
-						#~ text = line_parts.join('|').strip
-						#~ 
-						#~ messages << LineGui::LineMessage.new(to, from, id, timestamp, text.empty? ? nil : text, sticker.empty? ? nil : LineGui::LineSticker.new(sticker[0].to_i, sticker[1].to_i, sticker[2].to_i), image.empty? ? nil : LineGui::LineImage.new(image))
-						
-						
+					if limit == nil or index < limit						
 						doc = REXML::Document.new(line)
-						text = doc.root.text.to_s
+						text = doc.root.elements["text"]
+						text = text.text.to_s unless text.nil?
 						from = doc.root.attributes["from"]
 						to = doc.root.attributes["to"]
 						id = doc.root.attributes["id"]
 						timestamp = doc.root.attributes["timestamp"]
-						sticker = doc.root.attributes["sticker"]
+						sticker = doc.root.elements["sticker"]
 						if sticker != nil
-							sticker = sticker.split('-')
+							sticker = LineMessage::Sticker.new(sticker.attributes["set_id"], sticker.attributes["version"], sticker.attributes["id"])
 						end
-						image = doc.root.attributes["image"].to_s
+						image = doc.root.elements["image"]
+						if image != nil
+							image = LineMessage::Image.new(image.attributes["id"], image.attributes["url"], image.attributes["preview_url"])
+						end
 						
-						messages << LineGui::LineMessage.new(from.to_i, to.to_i, id.to_i, timestamp.to_i, text.empty? ? nil : text, sticker == nil ? nil : LineGui::LineSticker.new(sticker[0].to_i, sticker[1].to_i, sticker[2].to_i), image == nil ? nil : LineGui::LineImage.new(image))
+						messages << LineMessage::Message.new(from.to_i, to.to_i, id.to_i, timestamp.to_i, text, sticker, image)
 						
 					end
 				end

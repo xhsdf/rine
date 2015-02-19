@@ -7,6 +7,8 @@ module LineGui
 	require 'fileutils'
 	require 'uri'
 
+	require './line_message.rb'
+
 
 	COLOR_TEXTBOX = "white"
 	COLOR_TEXTBOX_SELF = "lightgreen"
@@ -20,18 +22,8 @@ module LineGui
 
 	TEXT_AREA_WIDTH = 480
 
-	class LineMessage
-		attr_reader :from, :to, :id, :timestamp, :text, :sticker, :image
-
-		def initialize(from, to, id, timestamp, text = nil, sticker = nil, image = nil)
-			@from, @to, @id, @timestamp, @text, @sticker, @image = from, to, id, timestamp, text, sticker, image
-		end
-		
-		
-		def to_xml()
-			return "<message id=\"#{@id}\" from=\"#{@from}\" to=\"#{@to}\" timestamp=\"#{@timestamp}\"#{sticker != nil ? " sticker=\"#{@sticker.set_id}-#{@sticker.version}-#{@sticker.id}\"" : ""}#{@image != nil ? " image=\"#{@image.id}\"" : ""}>#{@text != nil ? @text.encode(:xml => :text) : ""}</message>"
-		end
-	end
+	
+	
 
 	class LineLabelBox < Gtk::HBox
 		def initialize(label, box_color, bg_color, right = false)
@@ -87,30 +79,6 @@ module LineGui
 			bgbox = Gtk::EventBox.new
 			bgbox.modify_bg(Gtk::StateType::NORMAL, @box_color)
 			return bgbox
-		end
-	end
-
-
-	class LineImage
-		attr_reader :id
-		def initialize(id)
-			@id = id
-		end
-	end
-
-
-	class LineStickerSet
-		attr_reader :id, :version, :stickers
-		def initialize(id, version, stickers)
-			@id, @version, @stickers = id, version, stickers
-		end
-	end
-
-
-	class LineSticker
-		attr_reader :set_id, :version, :id
-		def initialize(set_id, version, id)
-			@set_id, @version, @id = set_id, version, id
 		end
 	end
 	
@@ -353,7 +321,7 @@ module LineGui
 				end
 				
 				text.signal_connect('activate-link') do |label, url|
-					@gui.management.open_url(url)
+					@gui.management.open_uri(url)
 					true
 				end
 								
@@ -377,10 +345,36 @@ module LineGui
 			end
 			if message.sticker != nil
 				sticker = Gtk::Image.new
-				Thread.new do
-					sticker.pixbuf = Gdk::Pixbuf.new(@gui.management.get_sticker(message.sticker.set_id, message.sticker.version, message.sticker.id))
+				
+				sticker_ebox = Gtk::EventBox.new()
+				sticker_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND)) # TODO: transparent?
+				sticker_ebox.add(sticker)
+				
+				sticker_ebox.signal_connect 'button-press-event' do |widget, event| # TODO: left button only
+					@gui.management.open_uri("https://store.line.me/stickershop/product/#{message.sticker.set_id}")
 				end
-				message_container.add(sticker)		
+				
+				Thread.new do
+					sticker.pixbuf = Gdk::Pixbuf.new(@gui.management.get_sticker(message))
+				end
+				message_container.add(sticker_ebox)		
+			end
+			
+			if message.image != nil
+				image = Gtk::Image.new
+				
+				image_ebox = Gtk::EventBox.new()
+				image_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND)) # TODO: transparent?
+				image_ebox.add(image)
+				
+				image_ebox.signal_connect 'button-press-event' do |widget, event| # TODO: left button only
+					@gui.management.open_uri(@gui.management.get_image(message))
+				end
+				
+				Thread.new do
+					image.pixbuf = Gdk::Pixbuf.new(@gui.management.get_image(message, true))
+				end
+				message_container.add(image_ebox)
 			end
 			
 			
