@@ -1,10 +1,17 @@
 #!/usr/bin/ruby
 
+<<<<<<< HEAD
 require './linegui.rb'
 require './line_logger.rb'
 require './line_message.rb'
 require 'fileutils'
 require 'net/http'
+=======
+$:.push('.')
+require 'linegui'
+require 'line_logger'
+require 'line_message'
+>>>>>>> 4e59c4093767436c688a8a693c24f6bec7228e1d
 
 def main()
 	Management.new().run()

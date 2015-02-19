@@ -1,14 +1,13 @@
 #!/usr/bin/ruby
 
-
 module LineGui
 	require 'gtk2'
 	require 'pathname'
 	require 'fileutils'
 	require 'uri'
 
-	require './line_message.rb'
-
+	$:.push('.')
+	require 'line_message'
 
 	COLOR_TEXTBOX = "white"
 	COLOR_TEXTBOX_SELF = "lightgreen"
@@ -19,11 +18,7 @@ module LineGui
 
 	#~ STICKER_SIZE = 196
 	AVATAR_SIZE = 48
-
-	TEXT_AREA_WIDTH = 480
-
-	
-	
+	TEXT_AREA_WIDTH = 480	
 
 	class LineLabelBox < Gtk::HBox
 		def initialize(label, box_color, bg_color, right = false)
@@ -42,14 +37,14 @@ module LineGui
 			mid.pack_start(label, false, false, VPADDING)
 			mid_ebox = Gtk::EventBox.new()
 			mid_ebox.modify_bg(Gtk::StateType::NORMAL, @box_color)
-			mid_ebox.add(mid)			
+			mid_ebox.add(mid)
 			if right
-				self.pack_end(rcorner, false, false, 0)			
-				self.pack_end(mid_ebox, false, false, 0)			
+				self.pack_end(rcorner, false, false, 0)
+				self.pack_end(mid_ebox, false, false, 0)
 				self.pack_end(lcorner, false, false, 0)
 			else
-				self.pack_start(lcorner, false, false, 0)			
-				self.pack_start(mid_ebox, false, false, 0)			
+				self.pack_start(lcorner, false, false, 0)
+				self.pack_start(mid_ebox, false, false, 0)
 				self.pack_start(rcorner, false, false, 0)
 			end
 			
@@ -69,7 +64,7 @@ module LineGui
 				
 				cr.arc 10*x, 10*y, 10, 0, 2*Math::PI
 				cr.set_source_color(@box_color)
-				cr.fill			
+				cr.fill
 			end
 			return ltcorner
 		end
@@ -88,14 +83,13 @@ module LineGui
 		
 		def initialize(management)
 			@management = management
-			#~ @notebook = Gtk::Notebook.new
 			@conversations = {}
 			@start_tab = Gtk::VBox.new(false, 0)
 			@chat_tab = Gtk::VBox.new(false, 0)
 		end
 		
 		
-		def add_user(id)			
+		def add_user(id)
 			if @conversations[id] == nil
 				@conversations[id] = LineGuiConversation.new(id, self)
 			end
@@ -119,12 +113,12 @@ module LineGui
 			unless log
 				if @conversations[id] != nil
 					@conversations[id].label.highlight()
-				end				
+				end
 			end
 			#~ open_conversation(id) # TODO: @conversations[id].open
 			#~ @conversations[id].scroll_to_bottom
-			
 		end
+		
 		
 		def run()
 			window = Gtk::Window.new
@@ -133,43 +127,32 @@ module LineGui
 			window.signal_connect("destroy") do
 			  Gtk.main_quit
 			end
-			window.border_width = 1		
-			
+			window.border_width = 1
 			window.set_default_size(800, 600)
 			
 			main_box = Gtk::HBox.new(false, 0)
-			
 			main_box.pack_start(@start_tab, false, false, 0)
 			main_box.pack_start(@chat_tab, true, true, 0)
-			
-			
-			
 			window.add(main_box)
 			
-			window.show_all
+			window.show_all()
 
-			Gtk.main	
+			Gtk.main()
 		end
 		
 		
 		def open_conversation(id, background = true)
 			if @conversations[id] != nil
-				#~ @notebook.append_page(@conversations[id].swin, Gtk::Label.new(management.get_name(id)))
 				if @conversations[id].box.parent != nil
 					@chat_tab.remove(@conversations[id].box)
 				else
 					@chat_tab.pack_start(@conversations[id].box, true, true, 5)
 				end
 			end
-			
-			#~ @notebook.set_page(@notebook.page_num(@conversations[id].swin)) unless background
 		end
 		
 		
 		def close_conversation(user_or_group_id, messages) # TODO
-			conversation = @conversations[user_or_group_id]
-			notebook.remove(convo.swin)
-			@conversations[user_or_group_id] = nil
 		end
 		
 		
@@ -195,19 +178,15 @@ module LineGui
 			@box = Gtk::VBox.new(false, 0)
 			
 			input_box = Gtk::VBox.new(false, 0)
-			
 			input_buttons_box = Gtk::HBox.new(false, 0)
 			halign = Gtk::Alignment.new(1, 0, 0, 0)
 			send_button = Gtk::Button.new("Send")
 			halign.add(send_button)
 			input_buttons_box.add(halign)
 			input_box.pack_start(input_buttons_box, false, false, 0)
-			
 			input_textview = Gtk::TextView.new
 			input_textview.set_size_request(0, 25)
 			input_box.pack_start(input_textview, true, true, 0)
-			
-			
 						
 			send_button.signal_connect('clicked') do |widget, event|
 				text = input_textview.buffer.text
@@ -224,9 +203,6 @@ module LineGui
 				input_textview.buffer.delete(input_textview.buffer.start_iter, input_textview.buffer.end_iter)
 			end
 			
-			
-			
-			
 			@swin = Gtk::ScrolledWindow.new
 			@swin.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC)
 			vport = Gtk::Viewport.new(nil, nil)
@@ -236,15 +212,12 @@ module LineGui
 			
 			@label = ConversationLabel.new(@id, @gui)
 			
-			#~ @swin.signal_connect('expose_event') do # TODO ????
-				#~ @label.highlight(false)
-			#~ end
-			
 			@box.pack_start(@swin, true, true, 0)
 			@box.pack_start(input_box, false, false, 0)
 			
-			@box.show_all()		
-		end	
+			@box.show_all()
+		end
+
 		
 		def add_message(message, log = false)
 			scroll_to_bottom = @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
@@ -262,12 +235,12 @@ module LineGui
 							scroll_to_bottom()
 					end
 				end
-						
+
 				halign.show_all()
 				@chat_box.pack_start(halign, false, false, 20)
 		end
 		
-		def scroll_to_bottom()						
+		def scroll_to_bottom()
 			adj = @swin.vadjustment
 			adj.set_value(adj.upper - adj.page_size)
 		end
@@ -287,7 +260,7 @@ module LineGui
 			send_time = Time.at(message.timestamp).getlocal().strftime("%H:%M")
 			sender_info = "  [#{send_time}] #{sender_name}"
 			if user_is_sender
-				sender_info = "#{sender_name} [#{send_time}]  "			
+				sender_info = "#{sender_name} [#{send_time}]  "
 			end
 		
 			box = Gtk::VBox.new(false, 2)
@@ -307,42 +280,25 @@ module LineGui
 			halign_name.add(Gtk::Label.new(sender_info))
 			message_container.pack_start(halign_name, false, false)
 					
-			if message.text != nil				
-				text = Gtk::Label.new()				
-				
+			if message.text != nil
+				text = Gtk::Label.new()
 				ebox = LineLabelBox.new(text, Gdk::Color.parse(user_is_sender ? COLOR_TEXTBOX_SELF : COLOR_TEXTBOX), Gdk::Color.parse(BACKGROUND), user_is_sender)
-				
-				message_string = message.text.encode(:xml => :text)
-				message_string_with_urls = message_string
-				message_string.scan(URI.regexp(['http', 'https'])) do |url_match|
-					url = url_match.join
-					url.sub!(/http(?!:\/\/)/, 'http://')
-					message_string_with_urls = message_string_with_urls.gsub(url, "<a href=\"#{url}\">#{url}</a>")
-				end
 				
 				text.signal_connect('activate-link') do |label, url|
 					@gui.management.open_uri(url)
 					true
 				end
-								
-				text.set_markup(message_string_with_urls)
-				#~ text.set_markup("<span background = 'black' foreground='white'>#{message.text}</span>")
+
+				text.set_markup(get_markup(message.text))
 				text.wrap = true
 				text.selectable = true
-				#~ text.set_size_request(TEXT_AREA_WIDTH, -1)
 				text.wrap_mode = Pango::Layout::WRAP_WORD_CHAR
-				
-				#~ message_ebox.shadow_type = Gtk::ShadowType::ETCHED_OUT
-				#~ message_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(user_is_sender ? COLOR_TEXTBOX_SELF : COLOR_TEXTBOX))
-				
-				#~ message_ebox = Gtk::EventBox.new()
-				#~ message_ebox.add(text)
-				#~ message_container.add(message_ebox)
 				message_container_hbox = Gtk::HBox.new(false, 2)
 				message_container_hbox.pack_start(ebox, true, true, HPADDING)
 				
 				message_container.pack_start(message_container_hbox, true, true)
 			end
+			
 			if message.sticker != nil
 				sticker = Gtk::Image.new
 				
@@ -357,7 +313,7 @@ module LineGui
 				Thread.new do
 					sticker.pixbuf = Gdk::Pixbuf.new(@gui.management.get_sticker(message))
 				end
-				message_container.add(sticker_ebox)		
+				message_container.add(sticker_ebox)
 			end
 			
 			if message.image != nil
@@ -388,7 +344,19 @@ module LineGui
 			
 
 			self.show_all()
-		end	
+		end
+		
+		
+		def get_markup(text)
+			message_string = text.encode(:xml => :text)
+			message_string_with_urls = message_string
+			message_string.scan(URI.regexp(['http', 'https'])) do |url_match|
+				url = url_match.join
+				url.sub!(/http(?!:\/\/)/, 'http://')
+				message_string_with_urls = message_string_with_urls.gsub(url, "<a href=\"#{url}\">#{url}</a>")
+			end
+			return message_string_with_urls
+		end
 	end
 	
 	

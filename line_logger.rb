@@ -1,15 +1,13 @@
 #!/usr/bin/ruby
 
-
-
 module LineLogger
 	require 'pathname'
 	require 'fileutils'
-	#~ require 'uri'
 	require "rexml/document"
 	
-	require './linegui.rb'
-	require './line_message.rb'
+	$:.push('.')
+	require 'linegui'
+	require 'line_message'
 
 	class Logger
 		attr_reader :management, :folder
@@ -17,8 +15,9 @@ module LineLogger
 		def initialize(management, folder = ".")
 			@management = management
 			@folder = folder
-		end	
-		
+		end
+
+
 		def add_message(message)
 			id = nil
 			if message.to == @management.get_own_user_id()
@@ -26,17 +25,7 @@ module LineLogger
 			else
 				id = message.to
 			end
-			#~ sticker = ""
-			#~ image = ""
-			#~ if message.sticker != nil
-				#~ sticker = "#{message.sticker.set_id}-#{message.sticker.version}-#{message.sticker.id}"
-			#~ end
-			#~ if message.image != nil
-				#~ image = message.image.id
-			#~ end
-			#~ 
-			#~ File.open("#{folder}/#{id}.log", 'a') do |f| f.puts("#{message.id}|#{message.from}|#{message.to}|#{message.timestamp}|#{sticker}|#{image}|#{message.text}".gsub("\n", "\\n").gsub("\r", "")) end
-			File.open("#{folder}/#{id}.log", 'a') do |f| f.puts(message.to_xml()) end
+			File.open("#{folder}/#{id}.log", 'a') do |f| f.puts(message_to_xml(message)) end
 		end
 		
 		
@@ -44,7 +33,7 @@ module LineLogger
 			messages = []
 			begin
 				File.readlines("#{folder}/#{id}.log").reverse.each_with_index do |line, index|
-					if limit == nil or index < limit						
+					if limit == nil or index < limit
 						doc = REXML::Document.new(line)
 						text = doc.root.elements["text"]
 						text = text.text.to_s unless text.nil?
@@ -69,6 +58,20 @@ module LineLogger
 			end
 				return messages.reverse
 		end
+	
+	
+		def message_to_xml(message)
+			return "<message id=\"#{message.id}\" from=\"#{message.from}\" to=\"#{message.to}\" timestamp=\"#{message.timestamp}\">#{message.sticker.nil? ? "" : sticker_to_xml(message.sticker)}#{message.image.nil? ? "" : image_to_xml(message.image)}#{message.text.nil? ? "" : "<text>#{message.text.encode(:xml => :text)}</text>"}</message>"
+		end
+		
+		
+		def sticker_to_xml(sticker)
+			return "<sticker set_id=\"#{sticker.set_id}\" version=\"#{sticker.version}\" id=\"#{sticker.id}\"/>"
+		end
+			
+			
+		def image_to_xml(image)
+			return "<image id=\"#{image.id}\"#{image.url.nil? ? "" : " url=\"#{image.url}\""}#{image.preview_url.nil? ? "" : " url=\"#{image.preview_url}\""}/>"
+		end
 	end
-
 end
