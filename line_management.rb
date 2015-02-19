@@ -20,7 +20,7 @@ class Management
 	def open_uri(uri)
 		if RbConfig::CONFIG['host_os'] =~ /mswin|mingw|cygwin/
 			system "start #{uri}"
-		lsif RbConfig::CONFIG['host_os'] =~ /darwin/
+		elsif RbConfig::CONFIG['host_os'] =~ /darwin/
 			system "open #{uri}"
 		elsif RbConfig::CONFIG['host_os'] =~ /linux|bsd/
 			system "xdg-open #{uri} &> /dev/null"
