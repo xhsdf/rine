@@ -1,9 +1,4 @@
-9001|2|4|1424262345|||Poi?
-9001|1|4|1424262345|||Poi?
-9001|0|4|1424262345|||Poi?
-9001|2|4|1424264453|||Poi?
-9001|1|4|1424264453|||Poi?
-9001|0|4|1424264453|||Poi?
-9001|2|4|1424264453|||Poi?
-9001|1|4|1424264453|||Poi?
-9001|0|4|1424264453|||Poi?
+<message id="9001" from="2" to="4" timestamp="1424370307">Poi?</message>
+<message id="9001" from="1" to="4" timestamp="1424370307">Poi?</message>
+<message id="9001" from="0" to="4" timestamp="1424370307">Poi?</message>
+<message id="9001" from="2" to="4" timestamp="1424370452">Burgdorf: test</message>
