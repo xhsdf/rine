@@ -1,8 +1,9 @@
 #!/usr/bin/ruby
 
-require './linegui.rb'
-require './line_logger.rb'
-require './line_message.rb'
+$:.push('.')
+require 'linegui'
+require 'line_logger'
+require 'line_message'
 
 def main()
 	Management.new().run()
