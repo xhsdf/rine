@@ -6,6 +6,7 @@ require 'net/http'
 require 'linegui'
 require 'line_logger'
 require 'line_message'
+require 'line_service'
 
 def main()
 	Management.new().run()
@@ -14,8 +15,21 @@ end
 
 class Management
 	PATH_STICKER = "./sticker"
+	PATH_IMAGE = "./image"
+	PATH_PROFILE_IMG = "./profile_img"
+	LINE_OS_BASE_URL = "http://os.line.naver.jp/os"
 	LINE_STICKER_BASE_URL = "http://dl.stickershop.line.naver.jp/products"
 	attr_reader :gui, :logger
+
+	def initialize
+		@lineservice = LineService.new
+		@lineservice.login("username", "password", "token")
+		@users = {}
+		@groups = {}
+		@revision = @lineservice.get_last_rev
+
+		get_available_stickers
+	end
 	
 	def open_uri(uri)
 		if RbConfig::CONFIG['host_os'] =~ /mswin|mingw|cygwin/
@@ -32,51 +46,91 @@ class Management
 			@logger.add_message(message)
 	end
 	
+	def add_groups
+		groupsjoined = @lineservice.get_groupids_joined
+		@lineservice.get_groups(groupsjoined).each do |g|
+			@users[g.id] = g.name
+		end
+	end
+
+	def add_contacts
+		contacts = @lineservice.get_all_contactids
+		@lineservice.get_contacts(contacts).each do |c|
+			@users[c.mid] = c.displayName
+		end
+	end
+
+	def get_profile
+		@profile = @lineservice.get_profile
+		@users[@profile.mid] = @profile.displayName
+	end
 	
 	def run()
 		@gui = LineGui::LineGuiMain.new(self)
 		@logger = LineLogger::Logger.new(self, "./logs")
 		Thread.new do gui.run() end
-		
-		gui.add_user("a0")
-		gui.add_user("a4")
-		add_log("a0")
-		add_log("a0")
-	
-	
-		if true
-			sleep 2
-			add_message(LineMessage::Message.new("a2", "a4", 9001, Time.now.to_i, "Poi?", nil, nil))
-			add_message(LineMessage::Message.new("a1", "a4", 9001, Time.now.to_i, "Poi?", nil, nil))
-			add_message(LineMessage::Message.new("a0", "a4", 9001, Time.now.to_i, "Poi?", nil, nil))
-			
-			sleep 2
-			add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
-			sleep 1
-			add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, "Poi?", nil, nil))
-			#~ gui.add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, "Poi?Poi?Poi?Poi?Poi?Poi?Poi?Poi?", nil, nil))
-			add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, "Poi?", nil, nil))
-			sleep 1	
-			add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, "Das http://oreno.soup.io/ ist ein Test<>: http://asset-5.soup.io/asset/9978/6216_54e9.jpeg", nil, nil))
-			add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, "Am besten ist es, den Leuten Geschichten zu erzählen, die absolut sinnlos sind, so wie damals, als ich mit der Fähre nach Shelbyville rübergefahren bin. Alles, was ich brauchte, war ein neuer Absatz für meinen Schuh, also beschloss ich nach Morganville rüber zu fahren, was zu damaliger Zeit aber noch Shelbyville hieß. Da hab ich mir eine Zwiebel an den Gürtel gehängt, das war damals übrigens üblich. Und die Überfahrt hat 5 Cent gekostet und auf dem 5 Cent Stück war damals noch ein wunderschöner Hummelschwarm abgebildet. Gib mir 5 Hummelschwärme für nen Viertel-Dollar, hieß es. Wo waren wir stehen geblieben?  Achja, der springende Punkt war, dass ich ne Zwiebel am Gürtel hatte, was damals absolut üblich war. Es gab keine weißen Zwiebeln, weil Krieg war.", nil, nil))
-			sleep 2	
-			add_message(LineMessage::Message.new("a1", "a2", 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
-			add_message(LineMessage::Message.new("a2", "a1", 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
+
+		get_profile
+		add_groups
+		add_contacts
+		@users.each do |hash, key|
+			gui.add_user(hash)
+			add_log(hash)
 		end
-		
-		
-		while true do
-			sleep 5
-			add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
-			sleep 1
-			add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, "Poi?", nil, nil))
-			add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, "Poi?", nil, nil))
-			sleep 1
-			add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, "Poi?", nil, nil))
-		end
-		
-		
+		start_poll(@revision)
+
 		while true do sleep 10 end
+	end
+
+	def start_poll(rev)
+		@lineservice.start_poll(rev, method(:poll_callback))		
+	end
+
+	def process_message(message)
+		#mark_message_read(message.to, message.id)
+
+		case message.contentType
+		when ContentType::NONE
+			timestamp = message.createdTime.to_i / 1000
+			msg = LineMessage::Message.new(message.from, message.to, message.id, timestamp, message.text, nil, nil)
+			@gui.add_message(msg, false)
+		when ContentType::STICKER
+			if message.contentMetadata != nil && message.contentMetadata["STKID"] != nil
+				pkg = message.contentMetadata["STKPKGID"]
+				ver = message.contentMetadata["STKVER"]
+				id = message.contentMetadata["STKID"]
+				sticker = LineMessage::Sticker.new(pkg, ver, id)
+			end 
+
+			timestamp = message.createdTime.to_i / 1000
+			msg = LineMessage::Message.new(message.from, message.to, message.id, timestamp, message.text, sticker, nil)
+			@gui.add_message(msg, false)
+		when ContentType::IMAGE
+			img = LineMessage::Image.new(message.id)
+			timestamp = message.createdTime.to_i / 1000
+			msg = LineMessage::Message.new(message.from, message.to, message.id, timestamp, nil, nil, img)
+			@gui.add_message(msg, false)
+				
+		else
+			puts "Unknown ContentType #{message.contentType}"
+			p message
+		end
+	end
+
+	def poll_callback(operations)
+		operations.each do |op|
+			@revision = op.revision if op.revision > @revision
+			case op.type
+			when OpType::RECEIVE_MESSAGE
+				process_message(op.message)
+			when OpType::NOTIFIED_UPDATE_PROFILE
+				puts "updated profile #{op.param1}"
+			else
+
+
+			end
+		end
+		start_poll(@revision)
 	end
 	
 	
@@ -94,26 +148,47 @@ class Management
 	end
 
 	def get_own_user_id()
-		return "a2"
+		return @profile.mid
 	end
 	
 
 	def get_name(user_id)
-		return "Poi" if  user_id == "a0"
-		return "Hans" if  user_id == "a1"
-		return "Peter" if  user_id == "a2"
-		return "Frank" if  user_id == "a3"
-		return "Burgdorf" if  user_id == "a4"
+		if @users[user_id] == nil
+			@users[user_id] = "undef"
+		end
+
+		return @users[user_id]
 	end
 	
 
 	def get_avatar(user_id)
-		#~ sleep 2
-		return "./files/poi.jpg" if user_id == "a0"
-		return "./files/avatar2.jpg" if user_id == "a1"
-		return "./files/avatar.png"
+		path = "#{PATH_PROFILE_IMG}/"
+		filename = "#{path}#{user_id}"
+		if !File.exists?(filename)
+			avatarurl = "#{LINE_OS_BASE_URL}/p/#{user_id}"
+			puts "Downloading #{avatarurl}"
+
+			unless File.directory?(path)
+				FileUtils.mkdir_p(path)
+			end
+			
+			File.open(filename, "wb") {|f| f.write(Net::HTTP.get(URI.parse(avatarurl)))}
+		end
+		return filename
 	end
 	
+	def get_available_stickers
+		@lineservice.get_available_stickers.productList.each do |sticker|
+			puts "package #{sticker.packageId.to_s} version #{sticker.version.to_s}"
+			#"#{LINE_STICKER_BASE_URL}/#{ver/1000000}/#{ver/1000}/#{ver%1000}/#{set}/WindowsPhone/productInfo.meta"
+
+		end
+	end
+
+	def mark_message_read(to, messageid)
+		@lineservice.send_chat_checked(to, messageid)
+	end
+
 
 	def get_sticker(message)
 		set = message.sticker.set_id.to_i
@@ -135,30 +210,33 @@ class Management
 		return filename
 	end
 	
-	
-	def get_available_stickers() # return Array of LineStickerSet
-		stickersets = []
-		
-		stickers = []
-		(0..20).each do |i|
-			stickers << LineMessage::Sticker.new(3897, 1, i)
-		end
-		
-		stickersets << LineMessage::StickerSet(3897, 1, stickers)
-	end
-	
 
 	def get_image(message, preview = false)
-		return "./files/image_preview.png" if preview
-		return "./files/image.png"
+		path = PATH_IMAGE
+		filename = "#{path}/#{message.id}#{preview ? ".thumb" : ""}"
+		if !File.exists?(filename)
+			unless File.directory?(path)
+				FileUtils.mkdir_p(path)
+			end
+			File.open(filename, "wb") {|f| f.write(@lineservice.get_image(message.id, preview))}
+		end
+		return filename
 	end
 		
 		
 	def send_message(to, text, sticker = nil, image = nil)
-		puts text
-		message_id = "9001"
-		
-		add_message(LineMessage::Message.new(get_own_user_id(), to, message_id, Time.now.to_i, text, sticker, image))
+		Thread.new do
+			sticker = LineMessage::Sticker.new(1000963, 2, 94996)
+			
+			message = LineMessage::Message.new(get_own_user_id(), to, nil, Time.now.to_i, text, sticker, image)
+			p message
+			response = @lineservice.send_message(message)
+			if response.nil?
+				raise "Could not deliver message"
+			end		
+
+			process_message(response)
+		end
 	end
 end
 

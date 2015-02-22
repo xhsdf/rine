@@ -253,9 +253,7 @@ module LineGui
 			super(false, 2)
 			@gui = gui
 			@id = message.id
-			
 			user_is_sender = message.from == @gui.management.get_own_user_id()
-			
 			sender_name = @gui.management.get_name(message.from)
 			send_time = Time.at(message.timestamp).getlocal().strftime("%H:%M")
 			sender_info = "  [#{send_time}] #{sender_name}"
@@ -265,7 +263,6 @@ module LineGui
 		
 			box = Gtk::VBox.new(false, 2)
 			avatar = Gtk::Image.new
-			
 			Thread.new do
 				avatar.pixbuf = Gdk::Pixbuf.new(@gui.management.get_avatar(message.from), AVATAR_SIZE, AVATAR_SIZE)
 			end
@@ -279,7 +276,6 @@ module LineGui
 			halign_name = user_is_sender ? Gtk::Alignment.new(1, 0, 0, 0) : Gtk::Alignment.new(0, 0, 0, 0)
 			halign_name.add(Gtk::Label.new(sender_info))
 			message_container.pack_start(halign_name, false, false)
-					
 			if message.text != nil
 				text = Gtk::Label.new()
 				ebox = LineLabelBox.new(text, Gdk::Color.parse(user_is_sender ? COLOR_TEXTBOX_SELF : COLOR_TEXTBOX), Gdk::Color.parse(BACKGROUND), user_is_sender)
@@ -324,7 +320,9 @@ module LineGui
 				image_ebox.add(image)
 				
 				image_ebox.signal_connect 'button-press-event' do |widget, event| # TODO: left button only
-					@gui.management.open_uri(@gui.management.get_image(message))
+					Thread.new do
+						@gui.management.open_uri(@gui.management.get_image(message))
+					end
 				end
 				
 				Thread.new do
