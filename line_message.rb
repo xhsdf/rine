@@ -20,10 +20,10 @@ module LineMessage
 
 
 	class StickerSet
-		attr_reader :id, :version, :stickers
+		attr_reader :id, :name, :version, :stickers
 
-		def initialize(id, version, stickers)
-			@id, @version, @stickers = id, version, stickers
+		def initialize(id, name, version, stickers)
+			@id, @name, @version, @stickers = id, name, version, stickers
 		end
 	end
 

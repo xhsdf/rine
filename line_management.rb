@@ -7,6 +7,8 @@ require 'linegui'
 require 'line_logger'
 require 'line_message'
 require 'line_service'
+require 'json'
+require 'open-uri'
 
 def main()
 	Management.new().run()
@@ -19,7 +21,8 @@ class Management
 	PATH_PROFILE_IMG = "./profile_img"
 	LINE_OS_BASE_URL = "http://os.line.naver.jp/os"
 	LINE_STICKER_BASE_URL = "http://dl.stickershop.line.naver.jp/products"
-	attr_reader :gui, :logger
+	MAX_DOWNLOADS = 10
+	attr_reader :gui, :logger, :downloads
 
 	def initialize
 		@lineservice = LineService.new
@@ -27,10 +30,10 @@ class Management
 		@users = {}
 		@groups = {}
 		@revision = @lineservice.get_last_rev
-
-		get_available_stickers
+		@downloads = 0
 	end
-	
+
+
 	def open_uri(uri)
 		if RbConfig::CONFIG['host_os'] =~ /mswin|mingw|cygwin/
 			system "start #{uri}"
@@ -40,12 +43,14 @@ class Management
 			system "xdg-open #{uri} &> /dev/null"
 		end
 	end
-	
+
+
 	def add_message(message)
 			@gui.add_message(message, false)
 			@logger.add_message(message)
 	end
-	
+
+
 	def add_groups
 		groupsjoined = @lineservice.get_groupids_joined
 		@lineservice.get_groups(groupsjoined).each do |g|
@@ -53,38 +58,50 @@ class Management
 		end
 	end
 
+
 	def add_contacts
 		contacts = @lineservice.get_all_contactids
 		@lineservice.get_contacts(contacts).each do |c|
 			@users[c.mid] = c.displayName
 		end
 	end
-
+	
+	
 	def get_profile
 		@profile = @lineservice.get_profile
 		@users[@profile.mid] = @profile.displayName
 	end
+
 	
 	def run()
 		@gui = LineGui::LineGuiMain.new(self)
 		@logger = LineLogger::Logger.new(self, "./logs")
 		Thread.new do gui.run() end
 
+		Thread.new do
+			@lineservice.get_available_stickers.productList.each do |sticker|
+				puts "package #{sticker.packageId.to_s} version #{sticker.version.to_s}"
+				@gui.add_sticker_set(get_sticker_set(sticker.packageId, sticker.version))				
+			end
+		end
+
 		get_profile
 		add_groups
 		add_contacts
 		@users.each do |hash, key|
 			gui.add_user(hash)
-			add_log(hash)
+			#~ add_log(hash)
 		end
 		start_poll(@revision)
 
 		while true do sleep 10 end
 	end
 
+
 	def start_poll(rev)
 		@lineservice.start_poll(rev, method(:poll_callback))		
 	end
+
 
 	def process_message(message)
 		#mark_message_read(message.to, message.id)
@@ -93,7 +110,7 @@ class Management
 		when ContentType::NONE
 			timestamp = message.createdTime.to_i / 1000
 			msg = LineMessage::Message.new(message.from, message.to, message.id, timestamp, message.text, nil, nil)
-			@gui.add_message(msg, false)
+			add_message(msg)
 		when ContentType::STICKER
 			if message.contentMetadata != nil && message.contentMetadata["STKID"] != nil
 				pkg = message.contentMetadata["STKPKGID"]
@@ -104,18 +121,18 @@ class Management
 
 			timestamp = message.createdTime.to_i / 1000
 			msg = LineMessage::Message.new(message.from, message.to, message.id, timestamp, message.text, sticker, nil)
-			@gui.add_message(msg, false)
+			add_message(msg)
 		when ContentType::IMAGE
 			img = LineMessage::Image.new(message.id)
 			timestamp = message.createdTime.to_i / 1000
 			msg = LineMessage::Message.new(message.from, message.to, message.id, timestamp, nil, nil, img)
-			@gui.add_message(msg, false)
-				
+			add_message(msg)				
 		else
 			puts "Unknown ContentType #{message.contentType}"
 			p message
 		end
 	end
+
 
 	def poll_callback(operations)
 		operations.each do |op|
@@ -147,6 +164,7 @@ class Management
 		return []
 	end
 
+
 	def get_own_user_id()
 		return @profile.mid
 	end
@@ -176,38 +194,64 @@ class Management
 		end
 		return filename
 	end
-	
-	def get_available_stickers
-		@lineservice.get_available_stickers.productList.each do |sticker|
-			puts "package #{sticker.packageId.to_s} version #{sticker.version.to_s}"
-			#"#{LINE_STICKER_BASE_URL}/#{ver/1000000}/#{ver/1000}/#{ver%1000}/#{set}/WindowsPhone/productInfo.meta"
 
-		end
-	end
+	
+	#~ def get_available_stickers
+		#~ @lineservice.get_available_stickers.productList.each do |sticker|
+			#~ puts "package #{sticker.packageId.to_s} version #{sticker.version.to_s}"
+			#~ #"#{LINE_STICKER_BASE_URL}/#{ver/1000000}/#{ver/1000}/#{ver%1000}/#{set}/WindowsPhone/productInfo.meta"
+#~ 
+		#~ end
+	#~ end
+
 
 	def mark_message_read(to, messageid)
 		@lineservice.send_chat_checked(to, messageid)
 	end
 
 
-	def get_sticker(message)
-		set = message.sticker.set_id.to_i
-		ver = message.sticker.version.to_i
-		id = message.sticker.id.to_i
+	def get_sticker(sticker)
+		set = sticker.set_id.to_i
+		ver = sticker.version.to_i
+		id = sticker.id.to_i
 
 		path = "#{PATH_STICKER}/#{set}/#{ver}/"
 		filename = "#{path}#{id}.png"
 		if !File.exists?(filename)
-			stickerurl = "#{LINE_STICKER_BASE_URL}/#{ver/1000000}/#{ver/1000}/#{ver%1000}/#{set}/WindowsPhone/stickers/#{id}.png"
-			puts "Downloading #{stickerurl}"
-
-			unless File.directory?(path)
-				FileUtils.mkdir_p(path)
+			while @downloads > MAX_DOWNLOADS
+				sleep 0.2
 			end
-			
-			File.open(filename, "wb") {|f| f.write(Net::HTTP.get(URI.parse(stickerurl)))}
+			@downloads += 1
+			begin
+				stickerurl = "#{LINE_STICKER_BASE_URL}/#{ver/1000000}/#{ver/1000}/#{ver%1000}/#{set}/WindowsPhone/stickers/#{id}.png"
+				puts "Downloading #{stickerurl}"
+
+				unless File.directory?(path)
+					FileUtils.mkdir_p(path)
+				end
+				
+				File.open(filename, "wb") {|f| f.write(Net::HTTP.get(URI.parse(stickerurl)))}
+			rescue
+			ensure
+				@downloads -= 1
+			end
 		end
 		return filename
+	end
+
+
+	def get_sticker_set(set_id, version)
+		json_string = open("#{LINE_STICKER_BASE_URL}/#{version/1000000}/#{version/1000}/#{version%1000}/#{set_id}/WindowsPhone/productInfo.meta").read
+
+		json = JSON.parse(json_string)
+
+		stickers = []
+		json["stickers"].each do |sticker|
+			stickers << LineMessage::Sticker.new(set_id, version, sticker["id"])
+		end
+		name = json["title"]["en"] || json["title"]["ja"] || "undef"
+		
+		return LineMessage::StickerSet.new(set_id, name, version, stickers)
 	end
 	
 
@@ -226,7 +270,7 @@ class Management
 		
 	def send_message(to, text, sticker = nil, image = nil)
 		Thread.new do
-			sticker = LineMessage::Sticker.new(1000963, 2, 94996)
+			#~ sticker = LineMessage::Sticker.new(1000963, 2, 94996)
 			
 			message = LineMessage::Message.new(get_own_user_id(), to, nil, Time.now.to_i, text, sticker, image)
 			p message

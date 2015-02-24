@@ -13,6 +13,7 @@ module LineGui
 	COLOR_TEXTBOX_SELF = "lightgreen"
 	BACKGROUND = "lightblue"
 	BACKGROUND_LOG = "lightgrey"
+	BACKGROUND_HIGHLIGHT = "lightgreen"
 	HPADDING = 10
 	VPADDING = 10
 
@@ -79,13 +80,14 @@ module LineGui
 	
 
 	class LineGuiMain
-		attr_reader :management, :conversations, :start_tab, :chat_tab
+		attr_reader :management, :conversations, :start_tab, :chat_tab, :sticker_sets, :sticker_menu
 		
 		def initialize(management)
 			@management = management
 			@conversations = {}
 			@start_tab = Gtk::VBox.new(false, 0)
 			@chat_tab = Gtk::VBox.new(false, 0)
+			@sticker_sets = []
 		end
 		
 		
@@ -111,7 +113,7 @@ module LineGui
 			@conversations[id].add_message(message, log)
 			
 			unless log
-				if @conversations[id] != nil
+				if @conversations[id] != nil and not @conversations[id].active
 					@conversations[id].label.highlight()
 				end
 			end
@@ -127,8 +129,8 @@ module LineGui
 			window.signal_connect("destroy") do
 			  Gtk.main_quit
 			end
-			window.border_width = 1
-			window.set_default_size(800, 600)
+			#~ window.border_width = 1
+			window.set_default_size(520, 600)
 			
 			main_box = Gtk::HBox.new(false, 0)
 			main_box.pack_start(@start_tab, false, false, 0)
@@ -141,34 +143,61 @@ module LineGui
 		end
 		
 		
-		def open_conversation(id, background = true)
+		def toggle_conversation(id)
 			if @conversations[id] != nil
-				if @conversations[id].box.parent != nil
-					@chat_tab.remove(@conversations[id].box)
+				if @conversations[id].is_open?
+					close_conversation(id)
 				else
-					@chat_tab.pack_start(@conversations[id].box, true, true, 5)
+					open_conversation(id)
 				end
 			end
 		end
 		
 		
-		def close_conversation(user_or_group_id, messages) # TODO
+		def open_conversation(id)
+			@conversations.keys.each do |key|
+				close_conversation(key) unless key == id
+			end
+		
+		
+			@chat_tab.pack_start(@conversations[id].box, true, true)
+			@conversations[id].set_active(true)
+			@conversations[id].label.highlight(false)
+			@conversations[id].label.active()
+			# refresh new messages in inactive windows
+			@conversations[id].swin.hide()
+			@conversations[id].swin.show()
+		end
+		
+		
+		def close_conversation(id) # TODO
+			if @conversations[id].box.parent == @chat_tab
+				@chat_tab.remove(@conversations[id].box)
+			end
+			@conversations[id].set_active(false)
+			@conversations[id].label.active(false)
 		end
 		
 		
 		def send_message(to, text, sticker, image)
 			@management.send_message(to, text, sticker, image)
 		end
+		
+		
+		def add_sticker_set(sticker_set)
+			@sticker_sets << sticker_set
+		end
 	end
 
 
 	class LineGuiConversation
-		attr_reader :id, :swin, :chat_box, :gui, :label, :new_messages, :box
+		attr_reader :id, :swin, :chat_box, :gui, :label, :new_messages, :box, :active
 		
 		def initialize(id, gui)
 			@id = id
 			@gui = gui
 			@chat_box = Gtk::VBox.new(false, 2)
+			@active = false
 			@new_messages = []
 			
 			chat_ebox = Gtk::EventBox.new()
@@ -177,16 +206,58 @@ module LineGui
 			
 			@box = Gtk::VBox.new(false, 0)
 			
-			input_box = Gtk::VBox.new(false, 0)
+			input_box = Gtk::HBox.new(false, 0)
 			input_buttons_box = Gtk::HBox.new(false, 0)
-			halign = Gtk::Alignment.new(1, 0, 0, 0)
+			
+			sticker_button = Gtk::Button.new("sticker")
+			input_buttons_box.add(sticker_button)
+			sticker_button.signal_connect('clicked') do |widget, event|
+				if @sticker_menu == nil
+					@sticker_menu = Gtk::Menu.new
+					@sticker_menu.reserve_toggle_size= false
+					
+					@gui.sticker_sets.each do |sticker_set|
+						menu_item = Gtk::MenuItem.new(sticker_set.name)					
+						@sticker_menu.append(menu_item)
+						
+						sub_menu = Gtk::Menu.new
+						sub_menu.reserve_toggle_size= false
+						
+						sticker_set.stickers.each do |sticker|
+							
+							menu_item.set_submenu(sub_menu)
+							
+							sub_menu_item = Gtk::ImageMenuItem.new("")
+							image = Gtk::Image.new
+							Thread.new do image.pixbuf = Gdk::Pixbuf.new(gui.management.get_sticker(sticker), 48, 48) end
+							sub_menu_item.image = image
+							sub_menu_item.always_show_image = true
+							
+							sub_menu.append(sub_menu_item)
+							
+							sub_menu_item.signal_connect("activate") do |widget, event|
+								@gui.send_message(@id, nil, sticker, nil)
+							end
+						
+						end
+						
+					
+					end
+					
+					@sticker_menu.show_all
+				end
+				
+				Thread.new do @sticker_menu.popup(nil, nil, 0, 0) end.join				
+			end
+			
+			
 			send_button = Gtk::Button.new("Send")
-			halign.add(send_button)
-			input_buttons_box.add(halign)
-			input_box.pack_start(input_buttons_box, false, false, 0)
+			input_buttons_box.add(send_button)
+			
 			input_textview = Gtk::TextView.new
 			input_textview.set_size_request(0, 25)
 			input_box.pack_start(input_textview, true, true, 0)
+			input_box.pack_start(input_buttons_box, false, false, 0)
 						
 			send_button.signal_connect('clicked') do |widget, event|
 				text = input_textview.buffer.text
@@ -205,10 +276,20 @@ module LineGui
 			
 			@swin = Gtk::ScrolledWindow.new
 			@swin.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC)
+			@swin.vscrollbar.set_size_request(5, -1)
 			vport = Gtk::Viewport.new(nil, nil)
 			vport.shadow_type = Gtk::SHADOW_NONE
 			vport.add(chat_ebox)
 			@swin.add(vport)
+			
+			#~ @swin.vscrollbar.get_internal_child.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
+			#~ @swin.vscrollbar.signal_connect("value-changed") do |widget, event|
+				#~ if @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
+					#~ @swin.vscrollbar.set_child_visible(false)
+				#~ else
+					#~ @swin.vscrollbar.set_child_visible(true)
+				#~ end
+			#~ end			
 			
 			@label = ConversationLabel.new(@id, @gui)
 			
@@ -223,31 +304,42 @@ module LineGui
 			scroll_to_bottom = @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
 			
 			scrollbar_pos = @swin.vadjustment.value
-				message_box = LineGuiConversationMessage.new(message, @gui)
-				message_box.show_all
+			message_box = LineGuiConversationMessage.new(message, @gui)
+			message_box.show_all()
+		
+			user_is_sender = message.from == @gui.management.get_own_user_id()
+			halign = user_is_sender ? Gtk::Alignment.new(1, 0, 0, 0) : Gtk::Alignment.new(0, 0, 0, 0)
+			halign.add(message_box)
 			
-				user_is_sender = message.from == @gui.management.get_own_user_id()
-				halign = user_is_sender ? Gtk::Alignment.new(1, 0, 0, 0) : Gtk::Alignment.new(0, 0, 0, 0)
-				halign.add(message_box)
-				
-				halign.signal_connect("size-allocate") do
-					if scroll_to_bottom or log
-							scroll_to_bottom()
-					end
+			halign.signal_connect("size-allocate") do
+				if scroll_to_bottom or log
+						scroll_to_bottom()
 				end
+			end
 
-				halign.show_all()
-				@chat_box.pack_start(halign, false, false, 20)
+			halign.show_all()
+			@chat_box.pack_start(halign, false, false, 20)
 		end
+		
 		
 		def scroll_to_bottom()
 			adj = @swin.vadjustment
 			adj.set_value(adj.upper - adj.page_size)
 		end
+
+		
+		def is_open?()
+			return @box.parent != nil
+		end
+		
+		
+		def set_active(active)
+			@active = active		
+		end
 	end
 	
 	class LineGuiConversationMessage < Gtk::HBox
-		attr_reader :id, :gui, :highlighted
+		attr_reader :id, :gui
 		
 		def initialize(message, gui)
 			super(false, 2)
@@ -258,7 +350,7 @@ module LineGui
 			send_time = Time.at(message.timestamp).getlocal().strftime("%H:%M")
 			sender_info = "  [#{send_time}] #{sender_name}"
 			if user_is_sender
-				sender_info = "#{sender_name} [#{send_time}]  "
+				sender_info = "[#{send_time}]  "
 			end
 		
 			box = Gtk::VBox.new(false, 2)
@@ -307,7 +399,7 @@ module LineGui
 				end
 				
 				Thread.new do
-					sticker.pixbuf = Gdk::Pixbuf.new(@gui.management.get_sticker(message))
+					sticker.pixbuf = Gdk::Pixbuf.new(@gui.management.get_sticker(message.sticker))
 				end
 				message_container.add(sticker_ebox)
 			end
@@ -334,7 +426,7 @@ module LineGui
 			
 			if user_is_sender
 				self.pack_start(message_container, true, false)
-				self.pack_start(avatar_container, false, false)
+				#~ self.pack_start(avatar_container, false, false)
 			else
 				self.pack_start(avatar_container, false, false)
 				self.pack_start(message_container, true, false)
@@ -358,8 +450,8 @@ module LineGui
 	end
 	
 	
-	class ConversationLabel < Gtk::Button
-		attr_reader :id, :gui, :highlighted
+	class ConversationLabel < Gtk::EventBox
+		attr_reader :id, :gui, :highlighted, :label
 		
 		def initialize(id, gui)
 			super()
@@ -367,22 +459,34 @@ module LineGui
 			@gui = gui
 			@highlighted = false
 			users = @gui.management.get_users(id)
+			self.set_size_request(-1, 25)
 			
-			self.set_label(@gui.management.get_name(id) + "#{users.length == 0 ? "" : " (#{users.length})"}")
+			@label = Gtk::Label.new()
 			
-			self.signal_connect('clicked') do |widget, event|
-				@gui.open_conversation(@id, false)
+			@label.set_label(@gui.management.get_name(id) + "#{users.length == 0 ? "" : " (#{users.length})"}")
+			
+			self.signal_connect('button-press-event') do |widget, event|
+				@gui.toggle_conversation(@id)
 			end
-			
-			self.show()
+			self.add(@label)
+			self.show_all()
+		end
+		
+		
+		def active(active = true)
+			if active
+				self.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
+			else
+				self.modify_bg(Gtk::StateType::NORMAL, Gtk::Widget.default_style.bg(Gtk::StateType::NORMAL))
+			end
 		end
 		
 		
 		def highlight(highlight = true)
-			return if highlight == @highlighted
+			#~ return if highlight == @highlighted
 			@highlighted = highlight
 			if highlight
-				self.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse("lightgreen"))
+				self.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND_HIGHLIGHT))
 			else
 				self.modify_bg(Gtk::StateType::NORMAL, Gtk::Widget.default_style.bg(Gtk::StateType::NORMAL))
 			end
