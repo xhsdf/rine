@@ -50,7 +50,7 @@ module LineLogger
 							image = LineMessage::Image.new(image.attributes["id"], image.attributes["url"], image.attributes["preview_url"])
 						end
 						
-						messages << LineMessage::Message.new(from, to, id, timestamp.to_i, text, sticker, image)
+						messages << LineMessage::Message.new(from, to, id, timestamp.to_i, text.nil? ? text : text.gsub("[\\n]", "\n"), sticker, image)
 						
 					end
 				end
@@ -61,7 +61,7 @@ module LineLogger
 	
 	
 		def message_to_xml(message)
-			return "<message id=\"#{message.id}\" from=\"#{message.from}\" to=\"#{message.to}\" timestamp=\"#{message.timestamp}\">#{message.sticker.nil? ? "" : sticker_to_xml(message.sticker)}#{message.image.nil? ? "" : image_to_xml(message.image)}#{message.text.nil? ? "" : "<text>#{message.text.encode(:xml => :text)}</text>"}</message>"
+			return "<message id=\"#{message.id}\" from=\"#{message.from}\" to=\"#{message.to}\" timestamp=\"#{message.timestamp}\">#{message.sticker.nil? ? "" : sticker_to_xml(message.sticker)}#{message.image.nil? ? "" : image_to_xml(message.image)}#{message.text.nil? ? "" : "<text>#{message.text.encode(:xml => :text).gsub("\n", "[\\n]")}</text>"}</message>"
 		end
 		
 		
