@@ -186,6 +186,7 @@ module LineGui
 		
 		def add_sticker_set(sticker_set)
 			@sticker_sets << sticker_set
+			@sticker_menu = nil
 		end
 	end
 
