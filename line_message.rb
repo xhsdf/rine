@@ -1,5 +1,3 @@
-#!/usr/bin/ruby
-
 module LineMessage
 	class Message
 		attr_reader :from, :to, :id, :timestamp, :text, :sticker, :image

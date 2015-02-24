@@ -1,5 +1,3 @@
-#!/usr/bin/ruby
-
 module LineLogger
 	require 'pathname'
 	require 'fileutils'

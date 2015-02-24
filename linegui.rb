@@ -1,5 +1,3 @@
-#!/usr/bin/ruby
-
 module LineGui
 	require 'gtk2'
 	require 'pathname'

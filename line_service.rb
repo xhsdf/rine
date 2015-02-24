@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
-
 $:.push('gen-rb')
 require 'thrift'
 require 'talk_service'

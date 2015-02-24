@@ -1,5 +1,3 @@
-#!/usr/bin/ruby
-
 $:.push('.')
 require 'fileutils'
 require 'net/http'
@@ -9,10 +7,6 @@ require 'line_message'
 require 'line_service'
 require 'json'
 require 'open-uri'
-
-def main()
-	Management.new().run()
-end
 
 
 class Management
@@ -24,9 +18,9 @@ class Management
 	MAX_DOWNLOADS = 10
 	attr_reader :gui, :logger, :downloads
 
-	def initialize
+	def initialize(username, password, token)
 		@lineservice = LineService.new
-		@lineservice.login("username", "password", "token")
+		@lineservice.login(username, password, token)
 		@users = {}
 		@groups = {}
 		@revision = @lineservice.get_last_rev
@@ -283,5 +277,3 @@ class Management
 		end
 	end
 end
-
-main()
