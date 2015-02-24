@@ -9,11 +9,20 @@ module LineGui
 	$:.push('.')
 	require 'line_message'
 
-	COLOR_TEXTBOX = "white"
+	COLOR_TEXTBOX = "lightblue"
 	COLOR_TEXTBOX_SELF = "lightgreen"
-	BACKGROUND = "lightblue"
+	#~ BACKGROUND = "lightblue"
+	BACKGROUND = "white"
+	
+	BACKGROUND_LABEL = "lightblue"
+	FOREGROUND_LABEL = "black"
+	BACKGROUND_LABEL_HIGHLIGHT = "lightgreen"
+	FOREGROUND_LABEL_HIGHLIGHT = "black"
+	BACKGROUND_LABEL_ACTIVE = "white"
+	FOREGROUND_LABEL_ACTIVE = "black"
+	
+	BACKGROUND_CHAT = "white"
 	BACKGROUND_LOG = "lightgrey"
-	BACKGROUND_HIGHLIGHT = "lightgreen"
 	HPADDING = 10
 	VPADDING = 10
 
@@ -133,9 +142,14 @@ module LineGui
 			window.set_default_size(520, 600)
 			
 			main_box = Gtk::HBox.new(false, 0)
-			main_box.pack_start(@start_tab, false, false, 0)
+			start_tab_ebox = Gtk::EventBox.new()
+			start_tab_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
+			start_tab_ebox.add(@start_tab)
+			main_box.pack_start(start_tab_ebox, false, false, 0)
 			main_box.pack_start(@chat_tab, true, true, 0)
 			window.add(main_box)
+			
+			window.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
 			
 			window.show_all()
 
@@ -203,7 +217,7 @@ module LineGui
 			
 			chat_ebox = Gtk::EventBox.new()
 			chat_ebox.add(@chat_box)
-			chat_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
+			chat_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND_CHAT))
 			
 			@box = Gtk::VBox.new(false, 0)
 			
@@ -254,11 +268,14 @@ module LineGui
 			
 			send_button = Gtk::Button.new("Send")
 			input_buttons_box.add(send_button)
+			input_buttons_ebox = Gtk::EventBox.new()
+			input_buttons_ebox.add(input_buttons_box)
+			input_buttons_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
 			
 			input_textview = Gtk::TextView.new
 			input_textview.set_size_request(0, 25)
 			input_box.pack_start(input_textview, true, true, 0)
-			input_box.pack_start(input_buttons_box, false, false, 0)
+			input_box.pack_start(input_buttons_ebox, false, false, 0)
 						
 			send_button.signal_connect('clicked') do |widget, event|
 				text = input_textview.buffer.text
@@ -469,6 +486,9 @@ module LineGui
 			self.signal_connect('button-press-event') do |widget, event|
 				@gui.toggle_conversation(@id)
 			end
+			self.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND_LABEL))
+			@label.modify_fg(Gtk::StateType::NORMAL, Gdk::Color.parse(FOREGROUND_LABEL))
+
 			self.add(@label)
 			self.show_all()
 		end
@@ -476,20 +496,24 @@ module LineGui
 		
 		def active(active = true)
 			if active
-				self.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
+				self.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND_LABEL_ACTIVE))
+				@label.modify_fg(Gtk::StateType::NORMAL, Gdk::Color.parse(FOREGROUND_LABEL_ACTIVE))
 			else
-				self.modify_bg(Gtk::StateType::NORMAL, Gtk::Widget.default_style.bg(Gtk::StateType::NORMAL))
+				#~ self.modify_bg(Gtk::StateType::NORMAL, Gtk::Widget.default_style.bg(Gtk::StateType::NORMAL))
+				self.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND_LABEL))
+				@label.modify_fg(Gtk::StateType::NORMAL, Gdk::Color.parse(FOREGROUND_LABEL))
 			end
 		end
 		
 		
 		def highlight(highlight = true)
-			#~ return if highlight == @highlighted
 			@highlighted = highlight
 			if highlight
-				self.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND_HIGHLIGHT))
+				self.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND_LABEL_HIGHLIGHT))
+				@label.modify_fg(Gtk::StateType::NORMAL, Gdk::Color.parse(FOREGROUND_LABEL_HIGHLIGHT))
 			else
-				self.modify_bg(Gtk::StateType::NORMAL, Gtk::Widget.default_style.bg(Gtk::StateType::NORMAL))
+				self.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND_LABEL))
+				@label.modify_fg(Gtk::StateType::NORMAL, Gdk::Color.parse(FOREGROUND_LABEL))
 			end
 		end
 	end
