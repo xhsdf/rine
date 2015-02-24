@@ -80,7 +80,7 @@ class Management
 
 		Thread.new do
 			@lineservice.get_available_stickers.productList.each do |sticker|
-				puts "package #{sticker.packageId.to_s} version #{sticker.version.to_s}"
+				#~ puts "package #{sticker.packageId.to_s} version #{sticker.version.to_s}"
 				@gui.add_sticker_set(get_sticker_set(sticker.packageId, sticker.version))				
 			end
 		end
@@ -90,11 +90,11 @@ class Management
 		add_contacts
 		@users.each do |hash, key|
 			gui.add_user(hash)
-			#~ add_log(hash)
+			add_log(hash)
 		end
 		start_poll(@revision)
 
-		while true do sleep 10 end
+		while not @gui.closed do sleep 2 end
 	end
 
 

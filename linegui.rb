@@ -89,7 +89,7 @@ module LineGui
 	
 
 	class LineGuiMain
-		attr_reader :management, :conversations, :start_tab, :chat_tab, :sticker_sets, :sticker_menu
+		attr_reader :management, :conversations, :start_tab, :chat_tab, :sticker_sets, :sticker_menu, :closed
 		
 		def initialize(management)
 			@management = management
@@ -97,10 +97,12 @@ module LineGui
 			@start_tab = Gtk::VBox.new(false, 0)
 			@chat_tab = Gtk::VBox.new(false, 0)
 			@sticker_sets = []
+			@closed = false
 		end
 		
 		
 		def add_user(id)
+			return if @closed
 			if @conversations[id] == nil
 				@conversations[id] = LineGuiConversation.new(id, self)
 			end
@@ -111,6 +113,7 @@ module LineGui
 		
 
 		def add_message(message, log = false)
+			return if @closed
 			id = nil
 			if message.to == @management.get_own_user_id()
 				id = message.from
@@ -132,12 +135,15 @@ module LineGui
 		
 		
 		def run()
-			window = Gtk::Window.new
+			window = Gtk::Window.new("rine alpha")
 			#~ Gtk::Settings.default.gtk_im_module="ime"
 
 			window.signal_connect("destroy") do
-			  Gtk.main_quit
+				Gtk.main_quit()
+				@closed = true
 			end
+			
+			
 			#~ window.border_width = 1
 			window.set_default_size(520, 600)
 			
@@ -145,7 +151,7 @@ module LineGui
 			start_tab_ebox = Gtk::EventBox.new()
 			start_tab_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
 			start_tab_ebox.add(@start_tab)
-			main_box.pack_start(start_tab_ebox, false, false, 0)
+			main_box.pack_start(start_tab_ebox, false, false, 10)
 			main_box.pack_start(@chat_tab, true, true, 0)
 			window.add(main_box)
 			
@@ -273,7 +279,7 @@ module LineGui
 			input_buttons_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
 			
 			input_textview = Gtk::TextView.new
-			input_textview.set_size_request(0, 25)
+			input_textview.set_size_request(0, -1)
 			input_box.pack_start(input_textview, true, true, 0)
 			input_box.pack_start(input_buttons_ebox, false, false, 0)
 						
@@ -313,6 +319,7 @@ module LineGui
 			
 			@box.pack_start(@swin, true, true, 0)
 			@box.pack_start(input_box, false, false, 0)
+			@box.set_size_request(0, -1)
 			
 			@box.show_all()
 		end
