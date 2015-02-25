@@ -36,27 +36,27 @@ module LineGui
 			lcorner.pack_start(corner(1, 1), false, false, 0)
 			lcorner.pack_start(bg(), true, true, 0)
 			lcorner.pack_start(corner(1, 0), false, false, 0)
+
 			rcorner = Gtk::VBox.new(false, 0)
 			rcorner.pack_start(corner(0, 1), false, false, 0)
 			rcorner.pack_start(bg(), true, true, 0)
 			rcorner.pack_start(corner(0, 0), false, false, 0)
-			
+
 			mid = Gtk::VBox.new(false, 0)
-			mid.pack_start(label, false, false, VPADDING)
+			mid.pack_start(label, true, true, VPADDING)
 			mid_ebox = Gtk::EventBox.new()
 			mid_ebox.modify_bg(Gtk::StateType::NORMAL, @box_color)
 			mid_ebox.add(mid)
-			if right
-				self.pack_end(rcorner, false, false, 0)
-				self.pack_end(mid_ebox, false, false, 0)
-				self.pack_end(lcorner, false, false, 0)
-			else
-				self.pack_start(lcorner, false, false, 0)
-				self.pack_start(mid_ebox, false, false, 0)
-				self.pack_start(rcorner, false, false, 0)
-			end
+
+			self.pack_start(lcorner, false, false, 0)
+			self.pack_start(mid_ebox, true, true, 0)
+			self.pack_start(rcorner, false, false, 0)
 			
-			valign_avatar =  Gtk::Alignment.new(0, 0, 0, 0)
+			#~ label.set_size_request(400, -1)
+			
+			#~ self.signal_connect("size-allocate") do |widget, allocation|
+				#~ puts "#{allocation.width}x#{allocation.height}"
+			#~ end
 		end
 		
 		
@@ -70,7 +70,7 @@ module LineGui
 				cr.set_source_color(@bg_color)
 				cr.fill
 				
-				cr.arc 10*x, 10*y, 10, 0, 2*Math::PI
+				cr.arc 10 * x, 10 * y, 10, 0, 2 * Math::PI
 				cr.set_source_color(@box_color)
 				cr.fill
 			end
@@ -127,8 +127,6 @@ module LineGui
 					@conversations[id].label.highlight()
 				end
 			end
-			#~ open_conversation(id) # TODO: @conversations[id].open
-			#~ @conversations[id].scroll_to_bottom
 		end
 		
 		
@@ -142,7 +140,6 @@ module LineGui
 			end
 			
 			
-			#~ window.border_width = 1
 			window.set_default_size(520, 600)
 			
 			main_box = Gtk::HBox.new(false, 0)
@@ -151,6 +148,7 @@ module LineGui
 			start_tab_ebox.add(@start_tab)
 			main_box.pack_start(start_tab_ebox, false, false, 10)
 			main_box.pack_start(@chat_tab, true, true, 0)
+			
 			window.add(main_box)
 			
 			window.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
@@ -210,7 +208,7 @@ module LineGui
 
 
 	class LineGuiConversation
-		attr_reader :id, :swin, :chat_box, :gui, :label, :new_messages, :box, :active
+		attr_reader :id, :swin, :chat_box, :gui, :label, :new_messages, :box, :active, :ctrl
 		
 		def initialize(id, gui)
 			@id = id
@@ -218,6 +216,7 @@ module LineGui
 			@chat_box = Gtk::VBox.new(false, 2)
 			@active = false
 			@new_messages = []
+			@ctrl = false
 			
 			chat_ebox = Gtk::EventBox.new()
 			chat_ebox.add(@chat_box)
@@ -278,22 +277,42 @@ module LineGui
 			
 			input_textview = Gtk::TextView.new
 			input_textview.set_size_request(0, -1)
-			input_box.pack_start(input_textview, true, true, 0)
+			
+			input_textview_ebox = Gtk::EventBox.new()
+			input_textview_ebox.add(input_textview)
+			input_textview_ebox.add_events(Gdk::Event::KEY_PRESS_MASK)
+			
+			# L_CTRL = 65507
+			# R_CTRL = 65508
+			input_textview_ebox.signal_connect('key-press-event') do |wdt, evt|
+				if evt.keyval == 65507
+					@ctrl = true
+				end
+			end
+			
+			input_textview_ebox.signal_connect('key-release-event') do |wdt, evt|
+				if evt.keyval == 65507
+					@ctrl = false
+				end
+			end			
+			
+			input_textview.buffer.signal_connect('insert-text') do |widget, iter, text, len|
+				if text == "\n" and not @ctrl
+					send_buffer(widget)
+				end
+			end
+			
+			#~ input_textview_ebox.signal_connect('key-press-event') do |wdt, evt|
+				#~ if evt.keyval == 65508
+					#~ send_buffer(input_textview.buffer)
+				#~ end
+			#~ end
+			
+			input_box.pack_start(input_textview_ebox, true, true, 0)
 			input_box.pack_start(input_buttons_ebox, false, false, 0)
 						
 			send_button.signal_connect('clicked') do |widget, event|
-				text = input_textview.buffer.text
-				sticker = nil
-				image = nil
-				
-				if not text.nil? and text.empty?
-					text = nil
-				end
-				unless text.nil? and sticker.nil? and image.nil?
-					@gui.send_message(@id, text, sticker, image)
-				end
-				
-				input_textview.buffer.delete(input_textview.buffer.start_iter, input_textview.buffer.end_iter)
+				send_buffer(input_textview.buffer)
 			end
 			
 			@swin = Gtk::ScrolledWindow.new
@@ -302,16 +321,7 @@ module LineGui
 			vport = Gtk::Viewport.new(nil, nil)
 			vport.shadow_type = Gtk::SHADOW_NONE
 			vport.add(chat_ebox)
-			@swin.add(vport)
-			
-			#~ @swin.vscrollbar.get_internal_child.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
-			#~ @swin.vscrollbar.signal_connect("value-changed") do |widget, event|
-				#~ if @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
-					#~ @swin.vscrollbar.set_child_visible(false)
-				#~ else
-					#~ @swin.vscrollbar.set_child_visible(true)
-				#~ end
-			#~ end			
+			@swin.add(vport)	
 			
 			@label = ConversationLabel.new(@id, @gui)
 			
@@ -321,10 +331,22 @@ module LineGui
 			
 			@box.show_all()
 		end
+		
+		
+		def send_buffer(buffer)
+			return if buffer.text.nil? or buffer.text.strip.empty?
+			@gui.send_message(@id, buffer.text.to_s, nil, nil)
+			
+			# thread to avoid "Invalid text buffer iterator"
+			Thread.new do
+				sleep 0.1
+				buffer.text = ""
+			end
+		end
 
 		
 		def add_message(message, log = false)
-			scroll_to_bottom = @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
+			scroll_to_bottom = message.from == @gui.management.get_own_user_id() or @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
 			
 			scrollbar_pos = @swin.vadjustment.value
 			message_box = LineGuiConversationMessage.new(message, @gui)
@@ -393,7 +415,7 @@ module LineGui
 			message_container.pack_start(halign_name, false, false)
 			if message.text != nil
 				text = Gtk::Label.new()
-				ebox = LineLabelBox.new(text, Gdk::Color.parse(user_is_sender ? COLOR_TEXTBOX_SELF : COLOR_TEXTBOX), Gdk::Color.parse(BACKGROUND), user_is_sender)
+				ebox = LineLabelBox.new(text, Gdk::Color.parse(user_is_sender ? COLOR_TEXTBOX_SELF : COLOR_TEXTBOX), Gdk::Color.parse(BACKGROUND))
 				
 				text.signal_connect('activate-link') do |label, url|
 					@gui.management.open_uri(url)
