@@ -149,56 +149,57 @@ module LineGui
 			end
 		end
 	end
-	
-		class LineStickerPreviewMenu < Gtk::Frame
-			attr_reader :conversation, :sticker_previews, :sticker_menu_box
+
+
+	class LineStickerPreviewMenu < Gtk::Frame
+		attr_reader :conversation, :sticker_previews, :sticker_menu_box
+		
+		def initialize()
+			super()
+			@sticker_previews = []
+			ebox = Gtk::EventBox.new
+			self.add(ebox)
+			ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
+			@sticker_menu_box = Gtk::VBox.new(false, 0)				
 			
-			def initialize()
-				super()
-				@sticker_previews = []
-				ebox = Gtk::EventBox.new
-				self.add(ebox)
-				ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
-				@sticker_menu_box = Gtk::VBox.new(false, 0)				
-				
-				@swin = Gtk::ScrolledWindow.new
-				@swin.set_size_request(-1, 400)
-				@swin.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC)
-				@swin.vscrollbar.set_size_request(5, -1)
-				vport = Gtk::Viewport.new(nil, nil)
-				vport.shadow_type = Gtk::SHADOW_NONE
-				vport.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
-				vport.add(@sticker_menu_box)
-				@swin.add(vport)
-				ebox.add(@swin)
-				
-				self.signal_connect("button_press_event") do |widget, event|
-					if event.button == 3
-						detach()
-					end
+			@swin = Gtk::ScrolledWindow.new
+			@swin.set_size_request(-1, 400)
+			@swin.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC)
+			@swin.vscrollbar.set_size_request(5, -1)
+			vport = Gtk::Viewport.new(nil, nil)
+			vport.shadow_type = Gtk::SHADOW_NONE
+			vport.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
+			vport.add(@sticker_menu_box)
+			@swin.add(vport)
+			ebox.add(@swin)
+			
+			self.signal_connect("button_press_event") do |widget, event|
+				if event.button == 3
+					detach()
 				end
 			end
-			
-			
-			def add_sticker_set(sticker_set)
-				sticker_preview = LineStickerPreview.new(sticker_set, self)
-				sticker_previews << sticker_preview
-				@sticker_menu_box.pack_start(sticker_preview, false, false, 0)
-			end
-
-
-			def set_conversation(conversation)
-				@conversation = conversation
-			end
-			
-
-			def detach()
-				#~ sticker_previews.each do |sticker_preview|
-						#~ sticker_preview.close()
-				#~ end
-				self.parent.remove(self) unless self.parent.nil?
-			end
 		end
+		
+		
+		def add_sticker_set(sticker_set)
+			sticker_preview = LineStickerPreview.new(sticker_set, self)
+			sticker_previews << sticker_preview
+			@sticker_menu_box.pack_start(sticker_preview, false, false, 0)
+		end
+
+
+		def set_conversation(conversation)
+			@conversation = conversation
+		end
+		
+
+		def detach()
+			#~ sticker_previews.each do |sticker_preview|
+					#~ sticker_preview.close()
+			#~ end
+			self.parent.remove(self) unless self.parent.nil?
+		end
+	end
 	
 
 	class LineGuiMain
@@ -447,7 +448,7 @@ module LineGui
 
 		
 		def add_message(message, log = false)
-			scroll_to_bottom = message.from == @gui.management.get_own_user_id() or @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
+			scroll_to_bottom = @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
 			
 			scrollbar_pos = @swin.vadjustment.value
 			message_box = LineGuiConversationMessage.new(message, @gui)
@@ -458,7 +459,7 @@ module LineGui
 			halign.add(message_box)
 			
 			halign.signal_connect("size-allocate") do
-				if scroll_to_bottom or log
+				if scroll_to_bottom or log or user_is_sender
 						scroll_to_bottom()
 				end
 			end
