@@ -20,11 +20,12 @@ module LineGui
 	FOREGROUND_LABEL_ACTIVE = "black"
 	
 	BACKGROUND_CHAT = "white"
-	BACKGROUND_LOG = "lightgrey"
+	BACKGROUND_TEXTVIEW = "white"
 	HPADDING = 10
 	VPADDING = 10
 
-	#~ STICKER_SIZE = 196
+	STICKER_SIZE = 92
+	STICKER_COLUMNS = 5
 	AVATAR_SIZE = 48
 	TEXT_AREA_WIDTH = 480	
 
@@ -51,8 +52,6 @@ module LineGui
 			self.pack_start(lcorner, false, false, 0)
 			self.pack_start(mid_ebox, true, true, 0)
 			self.pack_start(rcorner, false, false, 0)
-			
-			#~ label.set_size_request(400, -1)
 			
 			#~ self.signal_connect("size-allocate") do |widget, allocation|
 				#~ puts "#{allocation.width}x#{allocation.height}"
@@ -85,6 +84,122 @@ module LineGui
 		end
 	end
 	
+	
+	class LineStickerPreview < Gtk::VBox
+		attr_reader :sticker_set, :menu, :image_box, :expander
+		
+		def initialize(sticker_set, menu)
+			super(false, 0)
+			@sticker_set = sticker_set
+			@menu = menu
+			@image_box = Gtk::VBox.new(false, 0)
+			
+			@expander = Gtk::Expander.new(@sticker_set.name, true)
+			@expander.add(@image_box)			
+			
+			expander.signal_connect("notify::expanded") do
+				if expander.expanded?
+					load_image_box()
+				else
+					#~ @expander.set_size_request(-1, 20)
+				end
+			end
+			self.pack_start(@expander, false, false, 2)
+
+			@expander.show_all()
+			self.show_all()
+		end
+		
+		
+		def close()
+			@expander.set_expanded(false)
+		end
+		
+		
+		def open()
+			@expander.set_expanded(true)
+		end
+		
+	
+		def load_image_box()
+			if @image_box.children.empty?
+				sticker_set.stickers.each_with_index do |sticker, i|
+					if i % STICKER_COLUMNS == 0
+						@image_box.pack_start(Gtk::HBox.new(false, 0), false, false, 2)
+					end
+					sticker_image = Gtk::Image.new
+					Thread.new do
+						sticker_image.pixbuf = Gdk::Pixbuf.new(@menu.conversation.gui.management.get_sticker(sticker), STICKER_SIZE, STICKER_SIZE)
+					end
+					sticker_ebox = Gtk::EventBox.new
+					sticker_ebox.add(sticker_image)
+					sticker_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
+					@image_box.children.last.pack_start(sticker_ebox, false, false, 2)
+					
+					sticker_ebox.signal_connect("button_press_event") do |widget, event|
+						if event.button == 1
+							@menu.conversation.gui.send_message(@menu.conversation.id, nil, sticker, nil)
+							@menu.detach()
+						elsif event.button == 3
+							close()
+						end
+					end
+				end
+				@image_box.show_all()
+			end
+		end
+	end
+	
+		class LineStickerPreviewMenu < Gtk::Frame
+			attr_reader :conversation, :sticker_previews, :sticker_menu_box
+			
+			def initialize()
+				super()
+				@sticker_previews = []
+				ebox = Gtk::EventBox.new
+				self.add(ebox)
+				ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
+				@sticker_menu_box = Gtk::VBox.new(false, 0)				
+				
+				@swin = Gtk::ScrolledWindow.new
+				@swin.set_size_request(-1, 400)
+				@swin.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC)
+				@swin.vscrollbar.set_size_request(5, -1)
+				vport = Gtk::Viewport.new(nil, nil)
+				vport.shadow_type = Gtk::SHADOW_NONE
+				vport.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
+				vport.add(@sticker_menu_box)
+				@swin.add(vport)
+				ebox.add(@swin)
+				
+				self.signal_connect("button_press_event") do |widget, event|
+					if event.button == 3
+						detach()
+					end
+				end
+			end
+			
+			
+			def add_sticker_set(sticker_set)
+				sticker_preview = LineStickerPreview.new(sticker_set, self)
+				sticker_previews << sticker_preview
+				@sticker_menu_box.pack_start(sticker_preview, false, false, 0)
+			end
+
+
+			def set_conversation(conversation)
+				@conversation = conversation
+			end
+			
+
+			def detach()
+				#~ sticker_previews.each do |sticker_preview|
+						#~ sticker_preview.close()
+				#~ end
+				self.parent.remove(self) unless self.parent.nil?
+			end
+		end
+	
 
 	class LineGuiMain
 		attr_reader :management, :conversations, :start_tab, :chat_tab, :sticker_sets, :sticker_menu, :closed
@@ -96,7 +211,9 @@ module LineGui
 			@chat_tab = Gtk::VBox.new(false, 0)
 			@sticker_sets = []
 			@closed = false
+			@sticker_menu = LineStickerPreviewMenu.new()
 		end
+		
 		
 		
 		def add_user(id)
@@ -202,13 +319,13 @@ module LineGui
 		
 		def add_sticker_set(sticker_set)
 			@sticker_sets << sticker_set
-			@sticker_menu = nil
+			@sticker_menu.add_sticker_set(sticker_set)
 		end
 	end
 
 
 	class LineGuiConversation
-		attr_reader :id, :swin, :chat_box, :gui, :label, :new_messages, :box, :active, :ctrl
+		attr_reader :id, :swin, :chat_box, :gui, :label, :new_messages, :box, :active, :ctrl, :sticker_menu_box
 		
 		def initialize(id, gui)
 			@id = id
@@ -217,6 +334,7 @@ module LineGui
 			@active = false
 			@new_messages = []
 			@ctrl = false
+			@sticker_menu_box = Gtk::EventBox.new()
 			
 			chat_ebox = Gtk::EventBox.new()
 			chat_ebox.add(@chat_box)
@@ -226,51 +344,28 @@ module LineGui
 			
 			input_box = Gtk::HBox.new(false, 0)
 			input_buttons_box = Gtk::HBox.new(false, 0)
-			
-			sticker_button = Gtk::Button.new("sticker")
-			input_buttons_box.add(sticker_button)
-			sticker_button.signal_connect('clicked') do |widget, event|
-				if @sticker_menu == nil
-					@sticker_menu = Gtk::Menu.new
-					@sticker_menu.reserve_toggle_size= false
-					
-					@gui.sticker_sets.each do |sticker_set|
-						menu_item = Gtk::MenuItem.new(sticker_set.name)					
-						@sticker_menu.append(menu_item)
-						
-						sub_menu = Gtk::Menu.new
-						sub_menu.reserve_toggle_size= false
-						
-						sticker_set.stickers.each do |sticker|
-							
-							menu_item.set_submenu(sub_menu)
-							
-							sub_menu_item = Gtk::ImageMenuItem.new("")
-							image = Gtk::Image.new
-							Thread.new do image.pixbuf = Gdk::Pixbuf.new(gui.management.get_sticker(sticker), 48, 48) end
-							sub_menu_item.image = image
-							sub_menu_item.always_show_image = true
-							
-							sub_menu.append(sub_menu_item)
-							
-							sub_menu_item.signal_connect("activate") do |widget, event|
-								@gui.send_message(@id, nil, sticker, nil)
-							end
-						
-						end
-						
-					
-					end
-					
-					@sticker_menu.show_all
-				end
 				
-				Thread.new do @sticker_menu.popup(nil, nil, 0, 0) end.join				
+			sticker_button = Gtk::Button.new("sticker")
+			sticker_button_valignment = Gtk::Alignment.new(0, 1, 0, 0)
+			sticker_button_valignment.add(sticker_button)			
+			input_buttons_box.pack_start(sticker_button_valignment, false, false)
+			sticker_button.signal_connect('clicked') do |widget, event|
+				if @gui.sticker_menu.parent != @sticker_menu_box
+					@gui.sticker_menu.detach()
+					@sticker_menu_box.add(@gui.sticker_menu)
+					@gui.sticker_menu.set_conversation(self)
+				else
+					@gui.sticker_menu.detach()
+					@gui.sticker_menu.set_conversation(nil)
+				end
+				@sticker_menu_box.show_all()								
 			end
 			
 			
 			send_button = Gtk::Button.new("Send")
-			input_buttons_box.add(send_button)
+			send_button_valignment = Gtk::Alignment.new(0, 1, 0, 0)
+			send_button_valignment.add(send_button)
+			input_buttons_box.pack_start(send_button_valignment, false, false)
 			input_buttons_ebox = Gtk::EventBox.new()
 			input_buttons_ebox.add(input_buttons_box)
 			input_buttons_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
@@ -280,18 +375,23 @@ module LineGui
 			
 			input_textview_ebox = Gtk::EventBox.new()
 			input_textview_ebox.add(input_textview)
+			
+			input_textview_frame = Gtk::Frame.new
+			input_textview_frame.add(input_textview_ebox)
+			
+			input_textview.modify_base(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND_TEXTVIEW))
 			input_textview_ebox.add_events(Gdk::Event::KEY_PRESS_MASK)
 			
 			# L_CTRL = 65507
 			# R_CTRL = 65508
-			input_textview_ebox.signal_connect('key-press-event') do |wdt, evt|
-				if evt.keyval == 65507
+			input_textview_ebox.signal_connect('key-press-event') do |widget, event|
+				if event.keyval == 65507
 					@ctrl = true
 				end
 			end
 			
-			input_textview_ebox.signal_connect('key-release-event') do |wdt, evt|
-				if evt.keyval == 65507
+			input_textview_ebox.signal_connect('key-release-event') do |widget, event|
+				if event.keyval == 65507
 					@ctrl = false
 				end
 			end			
@@ -308,7 +408,7 @@ module LineGui
 				#~ end
 			#~ end
 			
-			input_box.pack_start(input_textview_ebox, true, true, 0)
+			input_box.pack_start(input_textview_frame, true, true, 0)
 			input_box.pack_start(input_buttons_ebox, false, false, 0)
 						
 			send_button.signal_connect('clicked') do |widget, event|
@@ -321,11 +421,12 @@ module LineGui
 			vport = Gtk::Viewport.new(nil, nil)
 			vport.shadow_type = Gtk::SHADOW_NONE
 			vport.add(chat_ebox)
-			@swin.add(vport)	
+			@swin.add(vport)
 			
 			@label = ConversationLabel.new(@id, @gui)
 			
 			@box.pack_start(@swin, true, true, 0)
+			@box.pack_start(@sticker_menu_box, false, false, 0)
 			@box.pack_start(input_box, false, false, 0)
 			@box.set_size_request(0, -1)
 			
@@ -439,8 +540,10 @@ module LineGui
 				sticker_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND)) # TODO: transparent?
 				sticker_ebox.add(sticker)
 				
-				sticker_ebox.signal_connect 'button-press-event' do |widget, event| # TODO: left button only
-					@gui.management.open_uri("https://store.line.me/stickershop/product/#{message.sticker.set_id}")
+				sticker_ebox.signal_connect 'button-press-event' do |widget, event|
+					if event.button == 1
+						@gui.management.open_uri("https://store.line.me/stickershop/product/#{message.sticker.set_id}")
+					end
 				end
 				
 				Thread.new do
@@ -457,8 +560,10 @@ module LineGui
 				image_ebox.add(image)
 				
 				image_ebox.signal_connect 'button-press-event' do |widget, event| # TODO: left button only
-					Thread.new do
-						@gui.management.open_uri(@gui.management.get_image(message))
+					if event.button == 1
+						Thread.new do
+							@gui.management.open_uri(@gui.management.get_image(message))
+						end
 					end
 				end
 				
