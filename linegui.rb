@@ -227,6 +227,21 @@ module LineGui
 			end
 		end
 		
+		
+		def notify_read_message(message_id, reader_id, conv_id)
+			begin
+				#~ puts "\n\n\nMessage #{message_id} in #{@management.get_name(conv_id)} got read by #{@management.get_name(reader_id)}:"
+				(@conversations[conv_id].messages.select do |m| m.id <= message_id and m.message.from == @management.get_own_user_id() end).each do |message|
+					message.add_read_by(reader_id)
+					#~ message.read_by.each do |r_id|
+						#~ puts @management.get_name(r_id)
+					#~ end
+					#~ puts message.message.text
+				end
+			rescue
+			end
+		end
+		
 
 		def add_message(message, log = false)
 			return if @closed
@@ -326,14 +341,14 @@ module LineGui
 
 
 	class LineGuiConversation
-		attr_reader :id, :swin, :chat_box, :gui, :label, :new_messages, :box, :active, :ctrl, :sticker_menu_box, :input_textview
+		attr_reader :id, :swin, :chat_box, :gui, :label, :messages, :box, :active, :ctrl, :sticker_menu_box, :input_textview
 		
 		def initialize(id, gui)
 			@id = id
 			@gui = gui
 			@chat_box = Gtk::VBox.new(false, 2)
 			@active = false
-			@new_messages = []
+			@messages = []
 			@ctrl = false
 			@sticker_menu_box = Gtk::EventBox.new()
 			
@@ -448,10 +463,13 @@ module LineGui
 
 		
 		def add_message(message, log = false)
+			
 			scroll_to_bottom = @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
 			
 			scrollbar_pos = @swin.vadjustment.value
-			message_box = LineGuiConversationMessage.new(message, @gui)
+			conv_message = LineGuiConversationMessage.new(message, @gui)
+			messages << conv_message
+			message_box = conv_message
 			message_box.show_all()
 		
 			user_is_sender = message.from == @gui.management.get_own_user_id()
@@ -489,12 +507,14 @@ module LineGui
 	end
 	
 	class LineGuiConversationMessage < Gtk::HBox
-		attr_reader :id, :gui
+		attr_reader :id, :gui, :message, :read_by
 		
 		def initialize(message, gui)
 			super(false, 2)
 			@gui = gui
 			@id = message.id
+			@message = message
+			@read_by = []
 			user_is_sender = message.from == @gui.management.get_own_user_id()
 			sender_name = @gui.management.get_name(message.from)
 			send_time = Time.at(message.timestamp).getlocal().strftime("%H:%M")
@@ -588,6 +608,11 @@ module LineGui
 			
 
 			self.show_all()
+		end
+		
+		
+		def add_read_by(user_id)
+			read_by << user_id unless read_by.include? user_id
 		end
 		
 		

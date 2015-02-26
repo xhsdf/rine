@@ -141,6 +141,8 @@ class Management
 				process_message(op.message)
 			when OpType::NOTIFIED_UPDATE_PROFILE
 				puts "updated profile #{op.param1}"
+			when OpType::NOTIFIED_READ_MESSAGE
+				@gui.notify_read_message(op.param3, op.param2, op.param1)
 			else
 			end
 		end
