@@ -34,7 +34,8 @@ class Management
 		elsif RbConfig::CONFIG['host_os'] =~ /darwin/
 			system "open #{uri}"
 		elsif RbConfig::CONFIG['host_os'] =~ /linux|bsd/
-			system "xdg-open #{uri} &> /dev/null"
+			require 'shellwords'
+			system "xdg-open #{Shellwords.escape(uri)} &> /dev/null"
 		end
 	end
 
