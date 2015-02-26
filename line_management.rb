@@ -134,11 +134,11 @@ class Management
 			case op.type
 			when OpType::RECEIVE_MESSAGE
 				process_message(op.message)
+			when OpType::SEND_MESSAGE
+				process_message(op.message)
 			when OpType::NOTIFIED_UPDATE_PROFILE
 				puts "updated profile #{op.param1}"
 			else
-
-
 			end
 		end
 		start_poll(@revision)
@@ -273,7 +273,7 @@ class Management
 				raise "Could not deliver message"
 			end		
 
-			process_message(response)
+			#~ process_message(response)
 		end
 	end
 end
