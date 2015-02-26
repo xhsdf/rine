@@ -84,8 +84,10 @@ class Management
 		add_groups
 		add_contacts
 		@users.each do |hash, key|
-			gui.add_user(hash)
-			add_log(hash)
+			unless hash == get_own_user_id()
+				gui.add_user(hash)
+				add_log(hash)
+			end
 		end
 		start_poll(@revision)
 
