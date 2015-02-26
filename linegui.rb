@@ -591,9 +591,8 @@ module LineGui
 		def get_markup(text)
 			message_string = text.encode(:xml => :text)
 			message_string_with_urls = message_string
-			message_string.scan(URI.regexp(['http', 'https'])) do |url_match|
-				url = url_match.join
-				url.sub!(/http(?!:\/\/)/, 'http://')
+			message_string.scan(URI.regexp(['http', 'https'])) do |*matches|
+				url = $&
 				message_string_with_urls = message_string_with_urls.gsub(url, "<a href=\"#{url}\">#{url}</a>")
 			end
 			return message_string_with_urls
