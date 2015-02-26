@@ -189,15 +189,6 @@ class Management
 		return filename
 	end
 
-	
-	#~ def get_available_stickers
-		#~ @lineservice.get_available_stickers.productList.each do |sticker|
-			#~ puts "package #{sticker.packageId.to_s} version #{sticker.version.to_s}"
-			#~ #"#{LINE_STICKER_BASE_URL}/#{ver/1000000}/#{ver/1000}/#{ver%1000}/#{set}/WindowsPhone/productInfo.meta"
-#~ 
-		#~ end
-	#~ end
-
 
 	def mark_message_read(to, messageid)
 		@lineservice.send_chat_checked(to, messageid)
@@ -263,17 +254,12 @@ class Management
 		
 		
 	def send_message(to, text, sticker = nil, image = nil)
-		Thread.new do
-			#~ sticker = LineMessage::Sticker.new(1000963, 2, 94996)
-			
+		Thread.new do			
 			message = LineMessage::Message.new(get_own_user_id(), to, nil, Time.now.to_i, text, sticker, image)
-			p message
 			response = @lineservice.send_message(message)
 			if response.nil?
 				raise "Could not deliver message"
-			end		
-
-			#~ process_message(response)
+			end
 		end
 	end
 end
