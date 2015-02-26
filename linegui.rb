@@ -326,7 +326,7 @@ module LineGui
 
 
 	class LineGuiConversation
-		attr_reader :id, :swin, :chat_box, :gui, :label, :new_messages, :box, :active, :ctrl, :sticker_menu_box
+		attr_reader :id, :swin, :chat_box, :gui, :label, :new_messages, :box, :active, :ctrl, :sticker_menu_box, :input_textview
 		
 		def initialize(id, gui)
 			@id = id
@@ -371,49 +371,49 @@ module LineGui
 			input_buttons_ebox.add(input_buttons_box)
 			input_buttons_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
 			
-			input_textview = Gtk::TextView.new
-			input_textview.set_size_request(0, -1)
+			@input_textview = Gtk::TextView.new
+			@input_textview.set_size_request(0, -1)
 			
-			input_textview_ebox = Gtk::EventBox.new()
-			input_textview_ebox.add(input_textview)
+			@input_textview_ebox = Gtk::EventBox.new()
+			@input_textview_ebox.add(@input_textview)
 			
-			input_textview_frame = Gtk::Frame.new
-			input_textview_frame.add(input_textview_ebox)
+			@input_textview_frame = Gtk::Frame.new
+			@input_textview_frame.add(@input_textview_ebox)
 			
-			input_textview.modify_base(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND_TEXTVIEW))
-			input_textview_ebox.add_events(Gdk::Event::KEY_PRESS_MASK)
+			@input_textview.modify_base(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND_TEXTVIEW))
+			@input_textview_ebox.add_events(Gdk::Event::KEY_PRESS_MASK)
 			
 			# L_CTRL = 65507
 			# R_CTRL = 65508
-			input_textview_ebox.signal_connect('key-press-event') do |widget, event|
+			@input_textview_ebox.signal_connect('key-press-event') do |widget, event|
 				if event.keyval == 65507
 					@ctrl = true
 				end
 			end
 			
-			input_textview_ebox.signal_connect('key-release-event') do |widget, event|
+			@input_textview_ebox.signal_connect('key-release-event') do |widget, event|
 				if event.keyval == 65507
 					@ctrl = false
 				end
 			end			
 			
-			input_textview.buffer.signal_connect('insert-text') do |widget, iter, text, len|
+			@input_textview.buffer.signal_connect('insert-text') do |widget, iter, text, len|
 				if text == "\n" and not @ctrl
 					send_buffer(widget)
 				end
 			end
 			
-			#~ input_textview_ebox.signal_connect('key-press-event') do |wdt, evt|
+			#~ @input_textview_ebox.signal_connect('key-press-event') do |wdt, evt|
 				#~ if evt.keyval == 65508
-					#~ send_buffer(input_textview.buffer)
+					#~ send_buffer(@input_textview.buffer)
 				#~ end
 			#~ end
 			
-			input_box.pack_start(input_textview_frame, true, true, 0)
+			input_box.pack_start(@input_textview_frame, true, true, 0)
 			input_box.pack_start(input_buttons_ebox, false, false, 0)
 						
 			send_button.signal_connect('clicked') do |widget, event|
-				send_buffer(input_textview.buffer)
+				send_buffer(@input_textview.buffer)
 			end
 			
 			@swin = Gtk::ScrolledWindow.new
@@ -481,7 +481,10 @@ module LineGui
 		
 		
 		def set_active(active)
-			@active = active		
+			@active = active
+			if @active
+				@input_textview.grab_focus
+			end
 		end
 	end
 	
