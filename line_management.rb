@@ -62,6 +62,11 @@ class Management
 	end
 	
 	
+	def get_users(group_id)
+		return [] # TODO
+	end
+	
+	
 	def get_profile
 		@profile = @lineservice.get_profile
 		@users[@profile.mid] = @profile.displayName
@@ -157,7 +162,6 @@ class Management
 		@logger.get_messages(user_id).each do |message|
 			@gui.add_message(message, true)
 		end
-		#~ @gui.conversations[user_id].scroll_to_bottom()
 	end
 
 
