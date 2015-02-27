@@ -8,26 +8,27 @@ module LineLogger
 	require 'line_message'
 
 	class Logger
-		attr_reader :management, :folder
+		attr_reader :management, :folder, :revision
 		
 		def initialize(management, folder = ".")
 			@management = management
 			@folder = folder
+			@revision = nil
 		end
 
 
-		def add_message(message)
+		def add_message(message, revision)
 			id = nil
 			if message.to == @management.get_own_user_id()
 				id = message.from
 			else
 				id = message.to
 			end
-			File.open("#{folder}/#{id}.log", 'a') do |f| f.puts(message_to_xml(message)) end
+			File.open("#{folder}/#{id}.log", 'a') do |f| f.puts(message_to_xml(message, revision)) end
 		end
 		
 		
-		def get_messages(id, limit = 25)
+		def get_messages(id, limit = 50)
 			messages = []
 			begin
 				File.readlines("#{folder}/#{id}.log").reverse.each_with_index do |line, index|
@@ -38,6 +39,12 @@ module LineLogger
 						from = doc.root.attributes["from"]
 						to = doc.root.attributes["to"]
 						id = doc.root.attributes["id"]
+						revision = doc.root.attributes["rev"]
+						if not revision.nil? and not revision.to_s.empty?
+							revision = revision.to_i
+						else
+							revision = nil
+						end
 						timestamp = doc.root.attributes["timestamp"]
 						sticker = doc.root.elements["sticker"]
 						if sticker != nil
@@ -50,6 +57,11 @@ module LineLogger
 						
 						messages << LineMessage::Message.new(from, to, id, timestamp.to_i, text.nil? ? text : text.gsub("[\\n]", "\n"), sticker, image)
 						
+						unless revision.nil?
+							if @revision.nil? or @revision < revision
+								@revision = revision
+							end
+						end
 					end
 				end
 			rescue Errno::ENOENT
@@ -58,8 +70,8 @@ module LineLogger
 		end
 	
 	
-		def message_to_xml(message)
-			return "<message id=\"#{message.id}\" from=\"#{message.from}\" to=\"#{message.to}\" timestamp=\"#{message.timestamp}\">#{message.sticker.nil? ? "" : sticker_to_xml(message.sticker)}#{message.image.nil? ? "" : image_to_xml(message.image)}#{message.text.nil? ? "" : "<text>#{message.text.encode(:xml => :text).gsub("\n", "[\\n]")}</text>"}</message>"
+		def message_to_xml(message, revision)
+			return "<message rev=\"#{revision}\" id=\"#{message.id}\" from=\"#{message.from}\" to=\"#{message.to}\" timestamp=\"#{message.timestamp}\">#{message.sticker.nil? ? "" : sticker_to_xml(message.sticker)}#{message.image.nil? ? "" : image_to_xml(message.image)}#{message.text.nil? ? "" : "<text>#{message.text.encode(:xml => :text).gsub("\n", "[\\n]")}</text>"}</message>"
 		end
 		
 		

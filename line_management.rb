@@ -23,7 +23,7 @@ class Management
 		@lineservice.login(username, password, token)
 		@users = {}
 		@groups = {}
-		@revision = @lineservice.get_last_rev
+		#~ @revision = @lineservice.get_last_rev
 		@downloads = 0
 	end
 
@@ -40,9 +40,9 @@ class Management
 	end
 
 
-	def add_message(message)
-			@gui.add_message(message, false)
-			@logger.add_message(message)
+	def add_message(message, revision)
+		@gui.add_message(message, false)
+		@logger.add_message(message, revision)
 	end
 
 
@@ -89,6 +89,9 @@ class Management
 				add_log(hash)
 			end
 		end
+		
+		@revision = @logger.revision || @lineservice.get_last_rev
+		
 		start_poll(@revision)
 
 		while not @gui.closed do sleep 2 end
@@ -100,14 +103,14 @@ class Management
 	end
 
 
-	def process_message(message)
+	def process_message(message, revision)
 		#mark_message_read(message.to, message.id)
 
 		case message.contentType
 		when ContentType::NONE
 			timestamp = message.createdTime.to_i / 1000
 			msg = LineMessage::Message.new(message.from, message.to, message.id, timestamp, message.text, nil, nil)
-			add_message(msg)
+			add_message(msg, revision)
 		when ContentType::STICKER
 			if message.contentMetadata != nil && message.contentMetadata["STKID"] != nil
 				pkg = message.contentMetadata["STKPKGID"]
@@ -118,12 +121,12 @@ class Management
 
 			timestamp = message.createdTime.to_i / 1000
 			msg = LineMessage::Message.new(message.from, message.to, message.id, timestamp, message.text, sticker, nil)
-			add_message(msg)
+			add_message(msg, revision)
 		when ContentType::IMAGE
 			img = LineMessage::Image.new(message.id)
 			timestamp = message.createdTime.to_i / 1000
 			msg = LineMessage::Message.new(message.from, message.to, message.id, timestamp, nil, nil, img)
-			add_message(msg)				
+			add_message(msg, revision)				
 		else
 			puts "Unknown ContentType #{message.contentType}"
 			p message
@@ -136,9 +139,9 @@ class Management
 			@revision = op.revision if op.revision > @revision
 			case op.type
 			when OpType::RECEIVE_MESSAGE
-				process_message(op.message)
+				process_message(op.message, op.revision)
 			when OpType::SEND_MESSAGE
-				process_message(op.message)
+				process_message(op.message, op.revision)
 			when OpType::NOTIFIED_UPDATE_PROFILE
 				puts "updated profile #{op.param1}"
 			when OpType::NOTIFIED_READ_MESSAGE
@@ -155,12 +158,6 @@ class Management
 			@gui.add_message(message, true)
 		end
 		#~ @gui.conversations[user_id].scroll_to_bottom()
-	end
-	
-	
-	def get_users(group_id)
-		return "a0", "a1", "a2", "a3" if group_id == "a4"
-		return []
 	end
 
 
