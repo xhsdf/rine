@@ -178,8 +178,10 @@ class Management
 	def notify_read_message(message_id, reader_id, conv_id)
 		Thread.new do
 			begin
-				(@conversations[conv_id].select do |message| message.id <= message_id and message.from == get_own_user_id() end).each do |message|
-					@gui.conversations[conv_id].messages[message.id].add_read_by(reader_id)
+				unless @conversations[conv_id].nil?
+					(@conversations[conv_id].select do |message| message.id <= message_id and message.from == get_own_user_id() end).each do |message|
+						@gui.conversations[conv_id].messages[message.id].add_read_by(reader_id)
+					end
 				end
 			rescue Exception => e
 				puts e
