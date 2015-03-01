@@ -48,6 +48,7 @@ class LineService
 		@p4service.set_token(token)		
 		@shopservice.set_token(token)		
 		@authtoken = token
+		puts @authtoken if authtoken.nil?
 		return token
 	end
 	
