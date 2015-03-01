@@ -142,12 +142,12 @@ class Management
 			end 
 
 			timestamp = message.createdTime.to_i / 1000
-			msg = LineMessage::Message.new(message.from, message.to, message.id, timestamp, message.text, sticker, nil)
+			msg = LineMessage::Message.new(message.from, message.to, message.id, timestamp, message.text, sticker, nil, revision)
 			add_message(msg)
 		when ContentType::IMAGE
 			img = LineMessage::Image.new(message.id)
 			timestamp = message.createdTime.to_i / 1000
-			msg = LineMessage::Message.new(message.from, message.to, message.id, timestamp, nil, nil, img)
+			msg = LineMessage::Message.new(message.from, message.to, message.id, timestamp, nil, nil, img, revision)
 			add_message(msg)				
 		else
 			puts "Unknown ContentType #{message.contentType}"
