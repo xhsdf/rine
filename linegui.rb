@@ -22,7 +22,9 @@ module LineGui
 	BACKGROUND_CHAT = "white"
 	BACKGROUND_TEXTVIEW = "white"
 	HPADDING = 10
-	VPADDING = 10
+	VPADDING = 5
+	
+	MESSAGE_VMARGIN = 7
 
 	STICKER_SIZE = 92
 	STICKER_COLUMNS = 5
@@ -32,6 +34,18 @@ module LineGui
 	class LineLabelBox < Gtk::HBox
 		def initialize(label, box_color, bg_color, right = false)
 			super(false, 0)
+						
+			#~ self.signal_connect("size-allocate") do |widget, allocation|
+				#~ parent = widget
+				#~ while (parent.class != Gtk::ScrolledWindow)
+					#~ parent = parent.parent
+				#~ end
+				#~ parent = parent.parent.parent.parent.parent
+				#~ puts parent.class
+				#~ puts "#{parent.allocation.width}x#{parent.allocation.height}"
+				#~ label.set_size_request(parent.allocation.width - 100, -1)
+			#~ end
+			
 			@box_color, @bg_color = box_color, bg_color
 			lcorner = Gtk::VBox.new(false, 0)
 			lcorner.pack_start(corner(1, 1), false, false, 0)
@@ -52,10 +66,6 @@ module LineGui
 			self.pack_start(lcorner, false, false, 0)
 			self.pack_start(mid_ebox, true, true, 0)
 			self.pack_start(rcorner, false, false, 0)
-			
-			#~ self.signal_connect("size-allocate") do |widget, allocation|
-				#~ puts "#{allocation.width}x#{allocation.height}"
-			#~ end
 		end
 		
 		
@@ -203,7 +213,7 @@ module LineGui
 	
 
 	class LineGuiMain
-		attr_reader :management, :conversations, :start_tab, :chat_tab, :sticker_sets, :sticker_menu, :closed
+		attr_reader :management, :conversations, :start_tab, :chat_tab, :sticker_sets, :sticker_menu, :closed, :window
 		
 		def initialize(management)
 			@management = management
@@ -213,8 +223,39 @@ module LineGui
 			@sticker_sets = []
 			@closed = false
 			@sticker_menu = LineStickerPreviewMenu.new()
+			
+			@window = Gtk::Window.new("rine alpha")
+			#~ Gtk::Settings.default.gtk_im_module="ime"
+
+			@window.signal_connect("destroy") do
+				Gtk.main_quit()
+				@closed = true
+			end
+			
+			#~ @window.signal_connect("notify::is-active") do
+				#~ if @window.active?
+					#~ puts "active!"
+				#~ else
+					#~ puts "inactive!"
+				#~ end
+			#~ end
+			
+			
+			@window.set_default_size(580, 600)
+			
+			main_box = Gtk::HBox.new(false, 0)
+			start_tab_ebox = Gtk::EventBox.new()
+			start_tab_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
+			start_tab_ebox.add(@start_tab)
+			main_box.pack_start(start_tab_ebox, false, false, 10)
+			main_box.pack_start(@chat_tab, true, true, 0)
+			
+			@window.add(main_box)
+			
+			@window.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
+			
+			@window.show_all()
 		end
-		
 		
 		
 		def add_user(id)
@@ -244,30 +285,6 @@ module LineGui
 		
 		
 		def run()
-			window = Gtk::Window.new("rine alpha")
-			#~ Gtk::Settings.default.gtk_im_module="ime"
-
-			window.signal_connect("destroy") do
-				Gtk.main_quit()
-				@closed = true
-			end
-			
-			
-			window.set_default_size(520, 600)
-			
-			main_box = Gtk::HBox.new(false, 0)
-			start_tab_ebox = Gtk::EventBox.new()
-			start_tab_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
-			start_tab_ebox.add(@start_tab)
-			main_box.pack_start(start_tab_ebox, false, false, 10)
-			main_box.pack_start(@chat_tab, true, true, 0)
-			
-			window.add(main_box)
-			
-			window.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
-			
-			window.show_all()
-
 			Gtk.main()
 		end
 		
@@ -463,7 +480,7 @@ module LineGui
 			end
 
 			halign.show_all()
-			@chat_box.pack_start(halign, false, false, 20)
+			@chat_box.pack_start(halign, false, false, MESSAGE_VMARGIN)
 		end
 		
 		
@@ -525,17 +542,17 @@ module LineGui
 			
 			if message.text != nil
 				text = Gtk::Label.new()
+				text.set_markup(get_markup(message.text))
+				text.wrap = true
+				text.selectable = true
+				text.wrap_mode = Pango::Layout::WRAP_WORD_CHAR
 				ebox = LineLabelBox.new(text, Gdk::Color.parse(user_is_sender ? COLOR_TEXTBOX_SELF : COLOR_TEXTBOX), Gdk::Color.parse(BACKGROUND))
 				
 				text.signal_connect('activate-link') do |label, url|
 					@gui.management.open_uri(url)
 					true
 				end
-
-				text.set_markup(get_markup(message.text))
-				text.wrap = true
-				text.selectable = true
-				text.wrap_mode = Pango::Layout::WRAP_WORD_CHAR
+				
 				message_container_hbox = Gtk::HBox.new(false, 2)
 				message_container_hbox.pack_start(ebox, true, true, HPADDING)
 				
@@ -603,7 +620,7 @@ module LineGui
 		def add_read_by(user_id)
 			unless read_by.include? user_id
 				@read_by << user_id
-				unless @info_label.nil?
+				unless @info_label.nil? # TODO?: Gtk::Tooltips listing each reader
 					@info_label.text = "read by #{@read_by.size}   "
 					@info_label.show()
 				end
