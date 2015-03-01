@@ -33,6 +33,16 @@ class Management
 			@logger.add_message(message)
 	end
 	
+	def get_conversation_id(from, to)
+		id = nil
+		if to == get_own_user_id()
+			id = from
+		else
+			id = to
+		end
+		return id
+	end
+	
 	
 	def run()
 		@downloads = 0
