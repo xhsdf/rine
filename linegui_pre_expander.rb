@@ -86,7 +86,7 @@ module LineGui
 	
 	
 	class LineStickerPreview < Gtk::VBox
-		attr_reader :sticker_set, :menu, :image_box, :expander
+		attr_reader :sticker_set, :menu, :image_box
 		
 		def initialize(sticker_set, menu)
 			super(false, 0)
@@ -94,34 +94,30 @@ module LineGui
 			@menu = menu
 			@image_box = Gtk::VBox.new(false, 0)
 			
-			@expander = Gtk::Expander.new(@sticker_set.name, true)
-			@expander.add(@image_box)			
+			sticker_set_frame = Gtk::Frame.new()
+			sticker_set_label = Gtk::Label.new(sticker_set.name)
 			
-			expander.signal_connect("notify::expanded") do
-				if expander.expanded?
-					load_image_box()
-				else
-					#~ @expander.set_size_request(-1, 20)
+			sticker_set_label_ebox = Gtk::EventBox.new
+			sticker_set_label_ebox.add(sticker_set_label)
+			sticker_set_label_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
+			
+			
+			sticker_set_label_ebox.signal_connect('button-press-event') do |widget, event|
+				if event.button == 1
+					toggle_image_box()
 				end
 			end
-			self.pack_start(@expander, false, false, 2)
+			
+			sticker_set_frame.add(sticker_set_label_ebox)
+			self.pack_start(sticker_set_frame, false, false, 2)
 
-			@expander.show_all()
 			self.show_all()
 		end
-		
-		
-		def close()
-			@expander.set_expanded(false)
-		end
-		
-		
-		def open()
-			@expander.set_expanded(true)
-		end
-		
 	
-		def load_image_box()
+		def show_image_box()
+			self.parent.children.each do |child|
+				child.hide_image_box()
+			end
 			if @image_box.children.empty?
 				sticker_set.stickers.each_with_index do |sticker, i|
 					if i % STICKER_COLUMNS == 0
@@ -141,65 +137,79 @@ module LineGui
 							@menu.conversation.gui.send_message(@menu.conversation.id, nil, sticker, nil)
 							@menu.detach()
 						elsif event.button == 3
-							close()
+							@menu.detach()
 						end
 					end
 				end
 				@image_box.show_all()
 			end
-		end
-	end
-
-
-	class LineStickerPreviewMenu < Gtk::Frame
-		attr_reader :conversation, :sticker_previews, :sticker_menu_box
-		
-		def initialize()
-			super()
-			@sticker_previews = []
-			ebox = Gtk::EventBox.new
-			self.add(ebox)
-			ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
-			@sticker_menu_box = Gtk::VBox.new(false, 0)				
-			
-			@swin = Gtk::ScrolledWindow.new
-			@swin.set_size_request(-1, 400)
-			@swin.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC)
-			@swin.vscrollbar.set_size_request(5, -1)
-			vport = Gtk::Viewport.new(nil, nil)
-			vport.shadow_type = Gtk::SHADOW_NONE
-			vport.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
-			vport.add(@sticker_menu_box)
-			@swin.add(vport)
-			ebox.add(@swin)
-			
-			self.signal_connect("button_press_event") do |widget, event|
-				if event.button == 3
-					detach()
-				end
+			if @image_box.parent.nil?
+				self.pack_start(@image_box, false, false, 2)
 			end
 		end
 		
 		
-		def add_sticker_set(sticker_set)
-			sticker_preview = LineStickerPreview.new(sticker_set, self)
-			sticker_previews << sticker_preview
-			@sticker_menu_box.pack_start(sticker_preview, false, false, 0)
-		end
-
-
-		def set_conversation(conversation)
-			@conversation = conversation
+		def hide_image_box()
+			unless @image_box.parent.nil?
+				@image_box.parent.remove(@image_box)
+			end
 		end
 		
-
-		def detach()
-			#~ sticker_previews.each do |sticker_preview|
-					#~ sticker_preview.close()
-			#~ end
-			self.parent.remove(self) unless self.parent.nil?
+		
+		def toggle_image_box()
+			if @image_box.parent.nil?
+				show_image_box()
+			else
+				hide_image_box()
+			end
 		end
 	end
+	
+		class LineStickerPreviewMenu < Gtk::EventBox
+			attr_reader :conversation, :sticker_previews, :sticker_menu_box
+			
+			def initialize()
+				super()
+				@sticker_previews = []
+				self.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
+				@sticker_menu_box = Gtk::VBox.new(false, 0)				
+				
+				@swin = Gtk::ScrolledWindow.new
+				@swin.set_size_request(-1, 400)
+				@swin.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC)
+				@swin.vscrollbar.set_size_request(5, -1)
+				vport = Gtk::Viewport.new(nil, nil)
+				vport.shadow_type = Gtk::SHADOW_NONE
+				vport.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
+				vport.add(@sticker_menu_box)
+				@swin.add(vport)				
+				self.add(@swin)
+				
+				#~ self.signal_connect('button-press-event') do |wdt, evt|
+					#~ self.parent.remove(self)
+				#~ end
+			end
+			
+			
+			def add_sticker_set(sticker_set)
+				sticker_preview = LineStickerPreview.new(sticker_set, self)
+				sticker_previews << sticker_preview
+				@sticker_menu_box.pack_start(sticker_preview, false, false, 0)
+			end
+
+
+			def set_conversation(conversation)
+				@conversation = conversation
+			end
+			
+
+			def detach()
+				sticker_previews.each do |sticker_preview|
+						sticker_preview.hide_image_box()
+				end
+				self.parent.remove(self) unless self.parent.nil?
+			end
+		end
 	
 
 	class LineGuiMain
@@ -230,7 +240,12 @@ module LineGui
 
 		def add_message(message, log = false)
 			return if @closed
-			id = @management.get_conversation_id(message.from, message.to)
+			id = nil
+			if message.to == @management.get_own_user_id()
+				id = message.from
+			else
+				id = message.to
+			end
 			
 			add_user(id)
 			@conversations[id].add_message(message, log)
@@ -321,14 +336,14 @@ module LineGui
 
 
 	class LineGuiConversation
-		attr_reader :id, :swin, :chat_box, :gui, :label, :messages, :box, :active, :ctrl, :sticker_menu_box, :input_textview
+		attr_reader :id, :swin, :chat_box, :gui, :label, :new_messages, :box, :active, :ctrl, :sticker_menu_box
 		
 		def initialize(id, gui)
 			@id = id
 			@gui = gui
 			@chat_box = Gtk::VBox.new(false, 2)
 			@active = false
-			@messages = {}
+			@new_messages = []
 			@ctrl = false
 			@sticker_menu_box = Gtk::EventBox.new()
 			
@@ -366,49 +381,49 @@ module LineGui
 			input_buttons_ebox.add(input_buttons_box)
 			input_buttons_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
 			
-			@input_textview = Gtk::TextView.new
-			@input_textview.set_size_request(0, -1)
+			input_textview = Gtk::TextView.new
+			input_textview.set_size_request(0, -1)
 			
-			@input_textview_ebox = Gtk::EventBox.new()
-			@input_textview_ebox.add(@input_textview)
+			input_textview_ebox = Gtk::EventBox.new()
+			input_textview_ebox.add(input_textview)
 			
-			@input_textview_frame = Gtk::Frame.new
-			@input_textview_frame.add(@input_textview_ebox)
+			input_textview_frame = Gtk::Frame.new
+			input_textview_frame.add(input_textview_ebox)
 			
-			@input_textview.modify_base(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND_TEXTVIEW))
-			@input_textview_ebox.add_events(Gdk::Event::KEY_PRESS_MASK)
+			input_textview.modify_base(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND_TEXTVIEW))
+			input_textview_ebox.add_events(Gdk::Event::KEY_PRESS_MASK)
 			
 			# L_CTRL = 65507
 			# R_CTRL = 65508
-			@input_textview_ebox.signal_connect('key-press-event') do |widget, event|
+			input_textview_ebox.signal_connect('key-press-event') do |widget, event|
 				if event.keyval == 65507
 					@ctrl = true
 				end
 			end
 			
-			@input_textview_ebox.signal_connect('key-release-event') do |widget, event|
+			input_textview_ebox.signal_connect('key-release-event') do |widget, event|
 				if event.keyval == 65507
 					@ctrl = false
 				end
 			end			
 			
-			@input_textview.buffer.signal_connect('insert-text') do |widget, iter, text, len|
+			input_textview.buffer.signal_connect('insert-text') do |widget, iter, text, len|
 				if text == "\n" and not @ctrl
 					send_buffer(widget)
 				end
 			end
 			
-			#~ @input_textview_ebox.signal_connect('key-press-event') do |wdt, evt|
+			#~ input_textview_ebox.signal_connect('key-press-event') do |wdt, evt|
 				#~ if evt.keyval == 65508
-					#~ send_buffer(@input_textview.buffer)
+					#~ send_buffer(input_textview.buffer)
 				#~ end
 			#~ end
 			
-			input_box.pack_start(@input_textview_frame, true, true, 0)
+			input_box.pack_start(input_textview_frame, true, true, 0)
 			input_box.pack_start(input_buttons_ebox, false, false, 0)
 						
 			send_button.signal_connect('clicked') do |widget, event|
-				send_buffer(@input_textview.buffer)
+				send_buffer(input_textview.buffer)
 			end
 			
 			@swin = Gtk::ScrolledWindow.new
@@ -443,13 +458,10 @@ module LineGui
 
 		
 		def add_message(message, log = false)
-			
-			scroll_to_bottom = @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
+			scroll_to_bottom = message.from == @gui.management.get_own_user_id() or @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
 			
 			scrollbar_pos = @swin.vadjustment.value
-			conv_message = LineGuiConversationMessage.new(message, @gui)
-			@messages[message.id] = conv_message
-			message_box = conv_message
+			message_box = LineGuiConversationMessage.new(message, @gui)
 			message_box.show_all()
 		
 			user_is_sender = message.from == @gui.management.get_own_user_id()
@@ -457,7 +469,7 @@ module LineGui
 			halign.add(message_box)
 			
 			halign.signal_connect("size-allocate") do
-				if scroll_to_bottom or log or user_is_sender
+				if scroll_to_bottom or log
 						scroll_to_bottom()
 				end
 			end
@@ -479,33 +491,25 @@ module LineGui
 		
 		
 		def set_active(active)
-			@active = active
-			if @active
-				@input_textview.grab_focus
-			end
+			@active = active		
 		end
 	end
 	
 	class LineGuiConversationMessage < Gtk::HBox
-		attr_reader :id, :gui, :message, :read_by, :infolabel
+		attr_reader :id, :gui
 		
 		def initialize(message, gui)
 			super(false, 2)
 			@gui = gui
 			@id = message.id
-			@message = message
-			@read_by = []
 			user_is_sender = message.from == @gui.management.get_own_user_id()
 			sender_name = @gui.management.get_name(message.from)
 			send_time = Time.at(message.timestamp).getlocal().strftime("%H:%M")
-			@info_label = nil
-		
 			sender_info = "  [#{send_time}] #{sender_name}"
 			if user_is_sender
-				sender_info = "[#{send_time}]   "
-				@info_label = Gtk::Label.new
+				sender_info = "[#{send_time}]  "
 			end
-			
+		
 			box = Gtk::VBox.new(false, 2)
 			avatar = Gtk::Image.new
 			Thread.new do
@@ -518,11 +522,9 @@ module LineGui
 			avatar_container.pack_end(valign_avatar)
 			
 			message_container = Gtk::VBox.new(false, 2)
-
 			halign_name = user_is_sender ? Gtk::Alignment.new(1, 0, 0, 0) : Gtk::Alignment.new(0, 0, 0, 0)
 			halign_name.add(Gtk::Label.new(sender_info))
 			message_container.pack_start(halign_name, false, false)
-			
 			if message.text != nil
 				text = Gtk::Label.new()
 				ebox = LineLabelBox.new(text, Gdk::Color.parse(user_is_sender ? COLOR_TEXTBOX_SELF : COLOR_TEXTBOX), Gdk::Color.parse(BACKGROUND))
@@ -541,7 +543,7 @@ module LineGui
 				
 				message_container.pack_start(message_container_hbox, true, true)
 			end
-
+			
 			if message.sticker != nil
 				sticker = Gtk::Image.new
 				
@@ -581,7 +583,8 @@ module LineGui
 				end
 				message_container.add(image_ebox)
 			end
-
+			
+			
 			if user_is_sender
 				self.pack_start(message_container, true, false)
 				#~ self.pack_start(avatar_container, false, false)
@@ -590,33 +593,17 @@ module LineGui
 				self.pack_start(message_container, true, false)
 			end
 			
-			unless @info_label.nil?
-				info_halign = Gtk::Alignment.new(1, 0, 0, 0)
-				info_halign.add(@info_label)
-				message_container.pack_start(info_halign, false, false)
-			end			
 
 			self.show_all()
-		end
-		
-		
-		def add_read_by(user_id)
-			unless read_by.include? user_id
-				@read_by << user_id
-				unless @info_label.nil?
-					@info_label.text = "read by #{@read_by.size}   "
-					@info_label.show()
-				end
-				puts "Message #{@id} got read by #{@gui.management.get_name(user_id)}: #{@message.text}"
-			end
 		end
 		
 		
 		def get_markup(text)
 			message_string = text.encode(:xml => :text)
 			message_string_with_urls = message_string
-			message_string.scan(URI.regexp(['http', 'https'])) do |*matches|
-				url = $&
+			message_string.scan(URI.regexp(['http', 'https'])) do |url_match|
+				url = url_match.join
+				url.sub!(/http(?!:\/\/)/, 'http://')
 				message_string_with_urls = message_string_with_urls.gsub(url, "<a href=\"#{url}\">#{url}</a>")
 			end
 			return message_string_with_urls

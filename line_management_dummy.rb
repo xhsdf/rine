@@ -43,30 +43,55 @@ class Management
 		gui.add_user("a0")
 		gui.add_user("a4")
 		add_log("a0")
-		add_log("a0")
+		add_log("a4")
 		
 		@gui.add_sticker_set(get_sticker_set(3897, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3000, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3001, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3002, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3003, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3004, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3005, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3006, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3007, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3008, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3009, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3010, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3011, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3012, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3897, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3897, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3897, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3897, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3897, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3897, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3897, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3897, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3897, 1))
+		#~ @gui.add_sticker_set(get_sticker_set(3897, 1))
+		#~ sleep 5
+		#~ @gui.add_sticker_set(get_sticker_set(1668, 1))
 	
 	
 
-		sleep 2
-		add_message(LineMessage::Message.new("a2", "a4", 9001, Time.now.to_i, "Poi?", nil, nil))
-		add_message(LineMessage::Message.new("a1", "a4", 9001, Time.now.to_i, "Poi?", nil, nil))
-		add_message(LineMessage::Message.new("a0", "a4", 9001, Time.now.to_i, "Poi?", nil, nil))
-		
-		sleep 2
-		add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
-		sleep 1
-		add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, "Poi?", nil, nil))
-		#~ add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, "Poi?Poi?Poi?Poi?Poi?Poi?Poi?Poi?", nil, nil))
-		add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, "Poi?", nil, nil))
-		sleep 1	
-		add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, "Das http://oreno.soup.io/ ist ein Test<>: http://asset-5.soup.io/asset/9978/6216_54e9.jpeg", nil, nil))
-		add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, "Am besten ist es, den Leuten Geschichten zu erzählen, die absolut sinnlos sind, so wie damals, als ich mit der Fähre nach Shelbyville rübergefahren bin. Alles, was ich brauchte, war ein neuer Absatz für meinen Schuh, also beschloss ich nach Morganville rüber zu fahren, was zu damaliger Zeit aber noch Shelbyville hieß. Da hab ich mir eine Zwiebel an den Gürtel gehängt, das war damals übrigens üblich. Und die Überfahrt hat 5 Cent gekostet und auf dem 5 Cent Stück war damals noch ein wunderschöner Hummelschwarm abgebildet. Gib mir 5 Hummelschwärme für nen Viertel-Dollar, hieß es. Wo waren wir stehen geblieben?  Achja, der springende Punkt war, dass ich ne Zwiebel am Gürtel hatte, was damals absolut üblich war. Es gab keine weißen Zwiebeln, weil Krieg war.", nil, nil))
-		sleep 2	
-		add_message(LineMessage::Message.new("a1", "a2", 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
-		add_message(LineMessage::Message.new("a2", "a1", 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
-
+		#~ sleep 2
+		#~ add_message(LineMessage::Message.new("a2", "a4", 9001, Time.now.to_i, "Poi?", nil, nil))
+		#~ add_message(LineMessage::Message.new("a1", "a4", 9001, Time.now.to_i, "Poi?", nil, nil))
+		#~ add_message(LineMessage::Message.new("a0", "a4", 9001, Time.now.to_i, "Poi?", nil, nil))
+		#~ 
+		#~ sleep 2
+		#~ add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
+		#~ sleep 1
+		#~ add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, "Poi?", nil, nil))
+		#~ add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, "Poi?", nil, nil))
+		#~ sleep 1	
+		#~ add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, "Das http://oreno.soup.io/ ist ein Test<>: http://asset-5.soup.io/asset/9978/6216_54e9.jpeg", nil, nil))
+		#~ add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, "Am besten ist es, den Leuten Geschichten zu erzählen, die absolut sinnlos sind, so wie damals, als ich mit der Fähre nach Shelbyville rübergefahren bin. Alles, was ich brauchte, war ein neuer Absatz für meinen Schuh, also beschloss ich nach Morganville rüber zu fahren, was zu damaliger Zeit aber noch Shelbyville hieß. Da hab ich mir eine Zwiebel an den Gürtel gehängt, das war damals übrigens üblich. Und die Überfahrt hat 5 Cent gekostet und auf dem 5 Cent Stück war damals noch ein wunderschöner Hummelschwarm abgebildet. Gib mir 5 Hummelschwärme für nen Viertel-Dollar, hieß es. Wo waren wir stehen geblieben?  Achja, der springende Punkt war, dass ich ne Zwiebel am Gürtel hatte, was damals absolut üblich war. Es gab keine weißen Zwiebeln, weil Krieg war.", nil, nil))
+		#~ sleep 2	
+		#~ add_message(LineMessage::Message.new("a1", "a2", 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
+		#~ add_message(LineMessage::Message.new("a2", "a1", 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
+#~ 
 		
 		
 		while not @gui.closed do
@@ -74,9 +99,10 @@ class Management
 			add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
 			sleep 1
 			add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, "Poi?", nil, nil))
-			add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, "Poi?", nil, nil))
+			add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, "www.crunchyroll.com/anime-news/2015/02/25/video-kancolle-character-designer-kujou-ichiso-demonstrates-live-drawing", nil, nil))
+			add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, "http://www.crunchyroll.com/anime-news/2015/02/25/video-kancolle-character-designer-kujou-ichiso-demonstrates-live-drawing", nil, nil))
 			sleep 1
-			add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, "Poi?", nil, nil))
+			#~ add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, "Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? ", nil, nil))
 		end
 		
 		

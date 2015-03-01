@@ -227,12 +227,12 @@ class LineService
 		Thread.new do
 			begin
 				result = @p4service.service.fetchOperations(revision, 50)
-				p result
+				#~ puts result
 
 			rescue Timeout::Error
 				result = []
 			rescue Exception => e
-				p e
+				puts e
 				result = []
 			end
 

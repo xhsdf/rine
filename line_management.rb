@@ -16,13 +16,14 @@ class Management
 	LINE_OS_BASE_URL = "http://os.line.naver.jp/os"
 	LINE_STICKER_BASE_URL = "http://dl.stickershop.line.naver.jp/products"
 	MAX_DOWNLOADS = 10
-	attr_reader :gui, :logger, :downloads
+	attr_reader :gui, :logger, :downloads, :conversations
 
 	def initialize(username, password, token)
 		@lineservice = LineService.new
 		@lineservice.login(username, password, token)
 		@users = {}
 		@groups = {}
+		@conversations = {}
 		#~ @revision = @lineservice.get_last_rev
 		@downloads = 0
 	end
@@ -40,9 +41,25 @@ class Management
 	end
 
 
-	def add_message(message, revision)
+	def add_message(message)
 		@gui.add_message(message, false)
-		@logger.add_message(message, revision)
+		conv_id = get_conversation_id(message.from, message.to)
+		if conversations[conv_id].nil?
+			conversations[conv_id] = []
+		end
+		conversations[conv_id] << message
+		@logger.add_message(message)
+	end
+	
+	
+	def get_conversation_id(from, to)
+		id = nil
+		if to == get_own_user_id()
+			id = from
+		else
+			id = to
+		end
+		return id
 	end
 
 
@@ -114,8 +131,8 @@ class Management
 		case message.contentType
 		when ContentType::NONE
 			timestamp = message.createdTime.to_i / 1000
-			msg = LineMessage::Message.new(message.from, message.to, message.id, timestamp, message.text, nil, nil)
-			add_message(msg, revision)
+			msg = LineMessage::Message.new(message.from, message.to, message.id, timestamp, message.text, nil, nil, revision)
+			add_message(msg)
 		when ContentType::STICKER
 			if message.contentMetadata != nil && message.contentMetadata["STKID"] != nil
 				pkg = message.contentMetadata["STKPKGID"]
@@ -126,12 +143,12 @@ class Management
 
 			timestamp = message.createdTime.to_i / 1000
 			msg = LineMessage::Message.new(message.from, message.to, message.id, timestamp, message.text, sticker, nil)
-			add_message(msg, revision)
+			add_message(msg)
 		when ContentType::IMAGE
 			img = LineMessage::Image.new(message.id)
 			timestamp = message.createdTime.to_i / 1000
 			msg = LineMessage::Message.new(message.from, message.to, message.id, timestamp, nil, nil, img)
-			add_message(msg, revision)				
+			add_message(msg)				
 		else
 			puts "Unknown ContentType #{message.contentType}"
 			p message
@@ -150,11 +167,24 @@ class Management
 			when OpType::NOTIFIED_UPDATE_PROFILE
 				puts "updated profile #{op.param1}"
 			when OpType::NOTIFIED_READ_MESSAGE
-				@gui.notify_read_message(op.param3, op.param2, op.param1)
+				notify_read_message(op.param3, op.param2, op.param1)
 			else
 			end
 		end
 		start_poll(@revision)
+	end
+
+
+	def notify_read_message(message_id, reader_id, conv_id)
+		Thread.new do
+			begin
+				(@conversations[conv_id].select do |message| message.id <= message_id and message.from == get_own_user_id() end).each do |message|
+					@gui.conversations[conv_id].messages[message.id].add_read_by(reader_id)
+				end
+			rescue Exception => e
+				puts e
+			end
+		end
 	end
 	
 	
