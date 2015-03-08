@@ -92,8 +92,8 @@ class Management
 	
 	def run()
 		@gui = LineGui::LineGuiMain.new(self)
-		@logger = LineLogger::Logger.new(self, "./logs")
 		Thread.new do gui.run() end
+		@logger = LineLogger::Logger.new(self, "./logs")
 
 		Thread.new do
 			@lineservice.get_available_stickers.productList.each do |sticker|

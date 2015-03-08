@@ -141,7 +141,7 @@ class LineService
 	def get_image(id, preview)
 		imguri = URI.parse("#{LINE_OS_BASE_URL}/m/#{id}#{preview ? "/preview" : ""}")
 		puts imguri.path		
-		puts @authtoken
+		#~ puts @authtoken
 		req = Net::HTTP::Get.new(imguri.path)
 		req['X-Line-Application'] = LINE_CLIENT
 		req['X-Line-Access'] = @authtoken

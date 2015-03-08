@@ -22,13 +22,14 @@ module LineGui
 	BACKGROUND_CHAT = "white"
 	BACKGROUND_TEXTVIEW = "white"
 	HPADDING = 10
-	VPADDING = 5
+	VPADDING = 2
+	CORNER_SIZE = 5
 	
 	MESSAGE_VMARGIN = 7
 
 	STICKER_SIZE = 92
 	STICKER_COLUMNS = 5
-	AVATAR_SIZE = 48
+	AVATAR_SIZE = 32
 	TEXT_AREA_WIDTH = 480	
 
 	class LineLabelBox < Gtk::HBox
@@ -71,7 +72,7 @@ module LineGui
 		
 		def corner(x, y)
 			ltcorner = Gtk::DrawingArea.new
-			ltcorner.set_size_request(10,10)
+			ltcorner.set_size_request(CORNER_SIZE, CORNER_SIZE)
 			ltcorner.signal_connect('expose_event') do
 				cr = ltcorner.window.create_cairo_context
 				
@@ -79,7 +80,7 @@ module LineGui
 				cr.set_source_color(@bg_color)
 				cr.fill
 				
-				cr.arc 10 * x, 10 * y, 10, 0, 2 * Math::PI
+				cr.arc CORNER_SIZE * x, CORNER_SIZE * y, CORNER_SIZE, 0, 2 * Math::PI
 				cr.set_source_color(@box_color)
 				cr.fill
 			end
@@ -464,7 +465,7 @@ module LineGui
 			scroll_to_bottom = @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
 			
 			scrollbar_pos = @swin.vadjustment.value
-			conv_message = LineGuiConversationMessage.new(message, @gui)
+			conv_message = LineGuiConversationMessage.new(message, self)
 			@messages[message.id] = conv_message
 			message_box = conv_message
 			message_box.show_all()
@@ -504,11 +505,12 @@ module LineGui
 	end
 	
 	class LineGuiConversationMessage < Gtk::HBox
-		attr_reader :id, :gui, :message, :read_by, :infolabel
+		attr_reader :id, :conversation, :gui, :message, :read_by, :infolabel
 		
-		def initialize(message, gui)
+		def initialize(message, conversation)
 			super(false, 2)
-			@gui = gui
+			@conversation = conversation
+			@gui = @conversation.gui
 			@id = message.id
 			@message = message
 			@read_by = []
@@ -537,7 +539,9 @@ module LineGui
 			message_container = Gtk::VBox.new(false, 2)
 
 			halign_name = user_is_sender ? Gtk::Alignment.new(1, 0, 0, 0) : Gtk::Alignment.new(0, 0, 0, 0)
-			halign_name.add(Gtk::Label.new(sender_info))
+			sender_info_label = Gtk::Label.new()
+			sender_info_label.set_markup("<small>#{sender_info}</small>")
+			halign_name.add(sender_info_label)
 			message_container.pack_start(halign_name, false, false)
 			
 			if message.text != nil
@@ -621,7 +625,11 @@ module LineGui
 			unless read_by.include? user_id
 				@read_by << user_id
 				unless @info_label.nil? # TODO?: Gtk::Tooltips listing each reader
-					@info_label.text = "read by #{@read_by.size}   "
+					if @conversation.id == user_id
+						@info_label.set_markup("<small>read</small>   ")
+					else
+						@info_label.set_markup("<small>read by #{@read_by.size}</small>   ")
+					end
 					@info_label.show()
 				end
 				puts "Message #{@id} got read by #{@gui.management.get_name(user_id)}: #{@message.text}"
