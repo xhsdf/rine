@@ -639,7 +639,6 @@ module LineGui
 			unless @marked or @user_is_sender
 				@marked = true
 				@gui.management.mark_message_read(@conversation.id, @id)
-				puts "#{@id} marked"
 			end
 		end
 		
