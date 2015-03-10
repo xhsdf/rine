@@ -437,6 +437,12 @@ module LineGui
 			vport.add(chat_ebox)
 			@swin.add(vport)
 			
+			@swin.vadjustment.signal_connect('value-changed') do |wdt, evt|
+				if @active and (@swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size)
+					mark_last_read()
+				end
+			end
+			
 			@label = ConversationLabel.new(@id, @gui)
 			
 			@box.pack_start(@swin, true, true, 0)
@@ -445,6 +451,13 @@ module LineGui
 			@box.set_size_request(0, -1)
 			
 			@box.show_all()
+		end
+		
+		
+		def mark_last_read()
+			unless @messages.empty?
+				@messages.to_a.last.last.mark_read()
+			end
 		end
 		
 		
@@ -460,8 +473,7 @@ module LineGui
 		end
 
 		
-		def add_message(message, log = false)
-			
+		def add_message(message, log = false)			
 			scroll_to_bottom = @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
 			
 			scrollbar_pos = @swin.vadjustment.value
@@ -469,13 +481,12 @@ module LineGui
 			@messages[message.id] = conv_message
 			message_box = conv_message
 			message_box.show_all()
-		
-			user_is_sender = message.from == @gui.management.get_own_user_id()
-			halign = user_is_sender ? Gtk::Alignment.new(1, 0, 0, 0) : Gtk::Alignment.new(0, 0, 0, 0)
+
+			halign = conv_message.user_is_sender ? Gtk::Alignment.new(1, 0, 0, 0) : Gtk::Alignment.new(0, 0, 0, 0)
 			halign.add(message_box)
 			
 			halign.signal_connect("size-allocate") do
-				if scroll_to_bottom or log or user_is_sender
+				if scroll_to_bottom or log or conv_message.user_is_sender
 						scroll_to_bottom()
 				end
 			end
@@ -499,13 +510,14 @@ module LineGui
 		def set_active(active)
 			@active = active
 			if @active
+				mark_last_read()
 				@input_textview.grab_focus
 			end
 		end
 	end
 	
 	class LineGuiConversationMessage < Gtk::HBox
-		attr_reader :id, :conversation, :gui, :message, :read_by, :infolabel
+		attr_reader :id, :conversation, :gui, :message, :read_by, :infolabel, :marked, :user_is_sender
 		
 		def initialize(message, conversation)
 			super(false, 2)
@@ -514,15 +526,17 @@ module LineGui
 			@id = message.id
 			@message = message
 			@read_by = []
-			user_is_sender = message.from == @gui.management.get_own_user_id()
+			@marked = false
+			@user_is_sender = message.from == @gui.management.get_own_user_id()
 			sender_name = @gui.management.get_name(message.from)
 			send_time = Time.at(message.timestamp).getlocal().strftime("%H:%M")
 			@info_label = nil
 		
 			sender_info = "  [#{send_time}] #{sender_name}"
-			if user_is_sender
+			if @user_is_sender
 				sender_info = "[#{send_time}]   "
-				@info_label = Gtk::Label.new
+				@info_label = Gtk::Label.new()
+				@info_label.set_markup("<small> </small>   ")
 			end
 			
 			box = Gtk::VBox.new(false, 2)
@@ -538,7 +552,7 @@ module LineGui
 			
 			message_container = Gtk::VBox.new(false, 2)
 
-			halign_name = user_is_sender ? Gtk::Alignment.new(1, 0, 0, 0) : Gtk::Alignment.new(0, 0, 0, 0)
+			halign_name = @user_is_sender ? Gtk::Alignment.new(1, 0, 0, 0) : Gtk::Alignment.new(0, 0, 0, 0)
 			sender_info_label = Gtk::Label.new()
 			sender_info_label.set_markup("<small>#{sender_info}</small>")
 			halign_name.add(sender_info_label)
@@ -550,7 +564,7 @@ module LineGui
 				text.wrap = true
 				text.selectable = true
 				text.wrap_mode = Pango::Layout::WRAP_WORD_CHAR
-				ebox = LineLabelBox.new(text, Gdk::Color.parse(user_is_sender ? COLOR_TEXTBOX_SELF : COLOR_TEXTBOX), Gdk::Color.parse(BACKGROUND))
+				ebox = LineLabelBox.new(text, Gdk::Color.parse(@user_is_sender ? COLOR_TEXTBOX_SELF : COLOR_TEXTBOX), Gdk::Color.parse(BACKGROUND))
 				
 				text.signal_connect('activate-link') do |label, url|
 					@gui.management.open_uri(url)
@@ -603,7 +617,7 @@ module LineGui
 				message_container.add(image_ebox)
 			end
 
-			if user_is_sender
+			if @user_is_sender
 				self.pack_start(message_container, true, false)
 				#~ self.pack_start(avatar_container, false, false)
 			else
@@ -618,6 +632,15 @@ module LineGui
 			end			
 
 			self.show_all()
+		end
+		
+		
+		def mark_read()
+			unless @marked or @user_is_sender
+				@marked = true
+				@gui.management.mark_message_read(@conversation.id, @id)
+				puts "#{@id} marked"
+			end
 		end
 		
 		
