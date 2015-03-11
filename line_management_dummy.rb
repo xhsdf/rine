@@ -43,9 +43,14 @@ class Management
 		return id
 	end
 	
+	def mark_message_read(id1, id2)
+	
+	end
+	
 	
 	def run()
 		@downloads = 0
+		message_id = Time.now.to_i
 		@gui = LineGui::LineGuiMain.new(self)
 		@logger = LineLogger::Logger.new(self, "./logs")
 		Thread.new do gui.run() end
@@ -106,13 +111,14 @@ class Management
 		
 		while not @gui.closed do
 			sleep 5
-			add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
+			add_message(LineMessage::Message.new("a0", "a2", (message_id += 1), Time.now.to_i, nil, LineMessage::Sticker.new(3897, 1, 4164182), nil))
 			sleep 1
-			add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, "Poi?", nil, nil))
-			add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, "www.crunchyroll.com/anime-news/2015/02/25/video-kancolle-character-designer-kujou-ichiso-demonstrates-live-drawing", nil, nil))
-			add_message(LineMessage::Message.new("a0", "a2", 9001, Time.now.to_i, "http://www.crunchyroll.com/anime-news/2015/02/25/video-kancolle-character-designer-kujou-ichiso-demonstrates-live-drawing", nil, nil))
+			add_message(LineMessage::Message.new("a0", "a2", (message_id += 1), Time.now.to_i, "Poi?", nil, nil))
+			add_message(LineMessage::Message.new("a0", "a2", (message_id += 1), Time.now.to_i, "www.crunchyroll.com/anime-news/2015/02/25/video-kancolle-character-designer-kujou-ichiso-demonstrates-live-drawing", nil, nil))
+			add_message(LineMessage::Message.new("a0", "a2", (message_id += 1), Time.now.to_i, "http://www.crunchyroll.com/anime-news/2015/02/25/video-kancolle-character-designer-kujou-ichiso-demonstrates-live-drawing", nil, nil))
+			add_message(LineMessage::Message.new("a2", "a0", (message_id += 1), Time.now.to_i, "http://www.crunchyroll.com/anime-news/2015/02/25/video-kancolle-character-designer-kujou-ichiso-demonstrates-live-drawing", nil, nil))
 			sleep 1
-			#~ add_message(LineMessage::Message.new("a2", "a0", 9001, Time.now.to_i, "Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? ", nil, nil))
+			#~ add_message(LineMessage::Message.new("a2", "a0", (message_id += 1), Time.now.to_i, "Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? ", nil, nil))
 		end
 		
 		

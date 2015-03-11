@@ -30,22 +30,11 @@ module LineGui
 	STICKER_SIZE = 92
 	STICKER_COLUMNS = 5
 	AVATAR_SIZE = 32
-	TEXT_AREA_WIDTH = 480	
+	TEXT_AREA_WIDTH = 480
 
 	class LineLabelBox < Gtk::HBox
 		def initialize(label, box_color, bg_color, right = false)
 			super(false, 0)
-						
-			#~ self.signal_connect("size-allocate") do |widget, allocation|
-				#~ parent = widget
-				#~ while (parent.class != Gtk::ScrolledWindow)
-					#~ parent = parent.parent
-				#~ end
-				#~ parent = parent.parent.parent.parent.parent
-				#~ puts parent.class
-				#~ puts "#{parent.allocation.width}x#{parent.allocation.height}"
-				#~ label.set_size_request(parent.allocation.width - 100, -1)
-			#~ end
 			
 			@box_color, @bg_color = box_color, bg_color
 			lcorner = Gtk::VBox.new(false, 0)
@@ -240,7 +229,6 @@ module LineGui
 					#~ puts "inactive!"
 				#~ end
 			#~ end
-			
 			
 			@window.set_default_size(580, 600)
 			
@@ -489,6 +477,7 @@ module LineGui
 				if scroll_to_bottom or log or conv_message.user_is_sender
 						scroll_to_bottom()
 				end
+				conv_message.fit()
 			end
 
 			halign.show_all()
@@ -517,7 +506,7 @@ module LineGui
 	end
 	
 	class LineGuiConversationMessage < Gtk::HBox
-		attr_reader :id, :conversation, :gui, :message, :read_by, :infolabel, :marked, :user_is_sender
+		attr_reader :id, :conversation, :gui, :message, :read_by, :infolabel, :marked, :user_is_sender, :label, :resizing
 		
 		def initialize(message, conversation)
 			super(false, 2)
@@ -527,6 +516,7 @@ module LineGui
 			@message = message
 			@read_by = []
 			@marked = false
+			@resizing = false
 			@user_is_sender = message.from == @gui.management.get_own_user_id()
 			sender_name = @gui.management.get_name(message.from)
 			send_time = Time.at(message.timestamp).getlocal().strftime("%H:%M")
@@ -559,14 +549,14 @@ module LineGui
 			message_container.pack_start(halign_name, false, false)
 			
 			if message.text != nil
-				text = Gtk::Label.new()
-				text.set_markup(get_markup(message.text))
-				text.wrap = true
-				text.selectable = true
-				text.wrap_mode = Pango::Layout::WRAP_WORD_CHAR
-				ebox = LineLabelBox.new(text, Gdk::Color.parse(@user_is_sender ? COLOR_TEXTBOX_SELF : COLOR_TEXTBOX), Gdk::Color.parse(BACKGROUND))
+				@label = Gtk::Label.new()
+				@label.set_markup(get_markup(message.text))
+				@label.wrap = true
+				@label.selectable = true
+				@label.wrap_mode = Pango::Layout::WRAP_WORD_CHAR
+				ebox = LineLabelBox.new(@label, Gdk::Color.parse(@user_is_sender ? COLOR_TEXTBOX_SELF : COLOR_TEXTBOX), Gdk::Color.parse(BACKGROUND))
 				
-				text.signal_connect('activate-link') do |label, url|
+				@label.signal_connect('activate-link') do |label, url|
 					@gui.management.open_uri(url)
 					true
 				end
@@ -632,6 +622,25 @@ module LineGui
 			end			
 
 			self.show_all()
+		end
+		
+		def has_one_line()
+			return @label.allocation.height < 20 # line height = 13 ?
+		end
+		
+		
+		def fit()
+			unless @label.nil? or @resizing
+				@resizing = true
+				width = @gui.chat_tab.allocation.width - 70
+				
+				if @label.allocation.width > width
+					@label.set_size_request(width, -1)
+				elsif @label.allocation.width < width and not has_one_line()
+					@label.set_size_request(@label.allocation.width + 10, -1)
+				end
+				@resizing = false
+			end
 		end
 		
 		
