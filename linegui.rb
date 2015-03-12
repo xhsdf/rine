@@ -224,13 +224,14 @@ module LineGui
 				@closed = true
 			end
 			
-			#~ @window.signal_connect("notify::is-active") do
-				#~ if @window.active?
+			@window.signal_connect("notify::is-active") do
+				if @window.active?
+					conversations.values.select do |conv| conv.active end.each do |conv| conv.mark_last_read() end
 					#~ puts "active!"
-				#~ else
+				else
 					#~ puts "inactive!"
-				#~ end
-			#~ end
+				end
+			end
 			
 			@window.set_default_size(580, 600)
 			
@@ -438,7 +439,7 @@ module LineGui
 			@swin.add(vport)
 			
 			@swin.vadjustment.signal_connect('value-changed') do |wdt, evt|
-				if @active and (@swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size)
+				if @gui.window.active? and @active and (@swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size)
 					mark_last_read()
 				end
 			end
