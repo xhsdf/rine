@@ -140,7 +140,7 @@ module LineGui
 					sticker_ebox.signal_connect("button_press_event") do |widget, event|
 						if event.button == 1
 							@menu.conversation.gui.send_message(@menu.conversation.id, nil, sticker, nil)
-							@menu.detach()
+							@menu.hide()
 						elsif event.button == 3
 							close()
 						end
@@ -152,37 +152,46 @@ module LineGui
 	end
 
 
-	class LineStickerPreviewMenu < Gtk::Frame
-		attr_reader :conversation, :sticker_previews, :sticker_menu_box
+	class LineStickerPreviewMenu < Gtk::Window
+		attr_reader :conversation, :sticker_previews, :sticker_menu_box, :sticker_sets
 		
 		def initialize()
 			super()
+			self.deletable = false
+			self.type_hint = Gdk::Window::TYPE_HINT_DIALOG
+			self.title = "Stickers"
+			@sticker_sets = []
 			@sticker_previews = []
 			ebox = Gtk::EventBox.new
 			self.add(ebox)
 			ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
 			@sticker_menu_box = Gtk::VBox.new(false, 0)				
 			
-			@swin = Gtk::ScrolledWindow.new
-			@swin.set_size_request(-1, 400)
-			@swin.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC)
-			@swin.vscrollbar.set_size_request(5, -1)
+			swin = Gtk::ScrolledWindow.new
+			swin.set_size_request(-1, 400)
+			swin.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC)
+			swin.vscrollbar.set_size_request(5, -1)			
 			vport = Gtk::Viewport.new(nil, nil)
 			vport.shadow_type = Gtk::SHADOW_NONE
 			vport.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
 			vport.add(@sticker_menu_box)
-			@swin.add(vport)
-			ebox.add(@swin)
+			swin.add(vport)			
+			ebox.add(swin)
+			
+			@sticker_menu_box.signal_connect("size-allocate") do |widget, allocation|
+				self.set_size_request(allocation.width, -1)
+			end
 			
 			self.signal_connect("button_press_event") do |widget, event|
 				if event.button == 3
-					detach()
+					hide()
 				end
 			end
 		end
 		
 		
 		def add_sticker_set(sticker_set)
+			@sticker_sets << sticker_set
 			sticker_preview = LineStickerPreview.new(sticker_set, self)
 			sticker_previews << sticker_preview
 			@sticker_menu_box.pack_start(sticker_preview, false, false, 0)
@@ -191,14 +200,6 @@ module LineGui
 
 		def set_conversation(conversation)
 			@conversation = conversation
-		end
-		
-
-		def detach()
-			#~ sticker_previews.each do |sticker_preview|
-					#~ sticker_preview.close()
-			#~ end
-			self.parent.remove(self) unless self.parent.nil?
 		end
 	end
 	
@@ -213,7 +214,7 @@ module LineGui
 			@chat_tab = Gtk::VBox.new(false, 0)
 			@sticker_sets = []
 			@closed = false
-			@sticker_menu = LineStickerPreviewMenu.new()
+			@sticker_menu = nil
 			
 			@window = Gtk::Window.new("rine alpha")
 			#~ Gtk::Settings.default.gtk_im_module="ime"
@@ -242,6 +243,7 @@ module LineGui
 			swin = Gtk::ScrolledWindow.new
 			swin.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_NEVER)
 			swin.hscrollbar.set_size_request(-1, 5)
+			swin.set_window_placement(Gtk::CORNER_BOTTOM_LEFT) # does not work
 			vport = Gtk::Viewport.new(nil, nil)
 			vport.shadow_type = Gtk::SHADOW_NONE
 			vport.add(tab_box_ebox)
@@ -315,6 +317,7 @@ module LineGui
 			# refresh new messages in inactive windows
 			@conversations[id].swin.hide()
 			@conversations[id].swin.show()
+			@sticker_menu.set_conversation(@conversations[id]) unless @sticker_menu.nil?
 		end
 		
 		
@@ -334,13 +337,23 @@ module LineGui
 		
 		def add_sticker_set(sticker_set)
 			@sticker_sets << sticker_set
-			@sticker_menu.add_sticker_set(sticker_set)
+		end
+		
+		
+		def show_sticker_menu()
+			if @sticker_menu.nil? or @sticker_menu.destroyed?
+				@sticker_menu = LineStickerPreviewMenu.new()
+			end
+			@sticker_sets.each do |sticker_set|
+				@sticker_menu.add_sticker_set(sticker_set) unless (@sticker_menu.sticker_sets.include?(sticker_set))
+			end
+			@sticker_menu.show_all()
 		end
 	end
 
 
 	class LineGuiConversation
-		attr_reader :id, :swin, :chat_box, :gui, :label, :messages, :box, :active, :ctrl, :sticker_menu_box, :input_textview
+		attr_reader :id, :swin, :chat_box, :gui, :label, :messages, :box, :active, :ctrl, :input_textview
 		
 		def initialize(id, gui)
 			@id = id
@@ -349,7 +362,6 @@ module LineGui
 			@active = false
 			@messages = {}
 			@ctrl = false
-			@sticker_menu_box = Gtk::EventBox.new()
 			
 			chat_ebox = Gtk::EventBox.new()
 			chat_ebox.add(@chat_box)
@@ -365,15 +377,8 @@ module LineGui
 			sticker_button_valignment.add(sticker_button)			
 			input_buttons_box.pack_start(sticker_button_valignment, false, false)
 			sticker_button.signal_connect('clicked') do |widget, event|
-				if @gui.sticker_menu.parent != @sticker_menu_box
-					@gui.sticker_menu.detach()
-					@sticker_menu_box.add(@gui.sticker_menu)
-					@gui.sticker_menu.set_conversation(self)
-				else
-					@gui.sticker_menu.detach()
-					@gui.sticker_menu.set_conversation(nil)
-				end
-				@sticker_menu_box.show_all()								
+				@gui.show_sticker_menu()
+				@gui.sticker_menu.set_conversation(self)
 			end
 			
 			
@@ -417,12 +422,6 @@ module LineGui
 				end
 			end
 			
-			#~ @input_textview_ebox.signal_connect('key-press-event') do |wdt, evt|
-				#~ if evt.keyval == 65508
-					#~ send_buffer(@input_textview.buffer)
-				#~ end
-			#~ end
-			
 			input_box.pack_start(@input_textview_frame, true, true, 0)
 			input_box.pack_start(input_buttons_ebox, false, false, 0)
 						
@@ -447,7 +446,6 @@ module LineGui
 			@label = ConversationLabel.new(@id, @gui)
 			
 			@box.pack_start(@swin, true, true, 0)
-			@box.pack_start(@sticker_menu_box, false, false, 0)
 			@box.pack_start(input_box, false, false, 0)
 			@box.set_size_request(0, -1)
 			
