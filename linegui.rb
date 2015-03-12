@@ -31,6 +31,7 @@ module LineGui
 	STICKER_COLUMNS = 5
 	AVATAR_SIZE = 32
 	TEXT_AREA_WIDTH = 480
+	AVATAR_MARGIN = 5
 
 	class LineLabelBox < Gtk::HBox
 		def initialize(label, box_color, bg_color, right = false)
@@ -203,12 +204,12 @@ module LineGui
 	
 
 	class LineGuiMain
-		attr_reader :management, :conversations, :start_tab, :chat_tab, :sticker_sets, :sticker_menu, :closed, :window
+		attr_reader :management, :conversations, :tab_box, :chat_tab, :sticker_sets, :sticker_menu, :closed, :window
 		
 		def initialize(management)
 			@management = management
 			@conversations = {}
-			@start_tab = Gtk::VBox.new(false, 0)
+			@tab_box = Gtk::HBox.new(false, 0)
 			@chat_tab = Gtk::VBox.new(false, 0)
 			@sticker_sets = []
 			@closed = false
@@ -232,11 +233,23 @@ module LineGui
 			
 			@window.set_default_size(580, 600)
 			
-			main_box = Gtk::HBox.new(false, 0)
-			start_tab_ebox = Gtk::EventBox.new()
-			start_tab_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
-			start_tab_ebox.add(@start_tab)
-			main_box.pack_start(start_tab_ebox, false, false, 10)
+			main_box = Gtk::VBox.new(false, 0)
+			@tab_box.set_size_request(-1, 15)
+			tab_box_ebox = Gtk::EventBox.new()
+			tab_box_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
+			tab_box_ebox.add(@tab_box)
+			
+			swin = Gtk::ScrolledWindow.new
+			swin.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_NEVER)
+			swin.hscrollbar.set_size_request(-1, 5)
+			vport = Gtk::Viewport.new(nil, nil)
+			vport.shadow_type = Gtk::SHADOW_NONE
+			vport.add(tab_box_ebox)
+			swin.add(vport)
+			
+			
+			
+			main_box.pack_start(swin, false, false, 10)
 			main_box.pack_start(@chat_tab, true, true, 0)
 			
 			@window.add(main_box)
@@ -253,7 +266,7 @@ module LineGui
 				@conversations[id] = LineGuiConversation.new(id, self)
 			end
 			if @conversations[id].label.parent == nil
-				@start_tab.pack_start(@conversations[id].label, false, false)
+				@tab_box.pack_start(@conversations[id].label, false, false)
 			end
 		end
 		
@@ -611,7 +624,7 @@ module LineGui
 				self.pack_start(message_container, true, false)
 				#~ self.pack_start(avatar_container, false, false)
 			else
-				self.pack_start(avatar_container, false, false)
+				self.pack_start(avatar_container, false, false, AVATAR_MARGIN)
 				self.pack_start(message_container, true, false)
 			end
 			
@@ -632,7 +645,7 @@ module LineGui
 		def fit()
 			unless @label.nil? or @resizing
 				@resizing = true
-				width = @gui.chat_tab.allocation.width - 70
+				width = @gui.chat_tab.allocation.width - 70 - (2 * AVATAR_MARGIN)
 				
 				if @label.allocation.width > width
 					@label.set_size_request(width, -1)
@@ -693,7 +706,9 @@ module LineGui
 			
 			@label = Gtk::Label.new()
 			
-			@label.set_label(@gui.management.get_name(id) + "#{users.length == 0 ? "" : " (#{users.length})"}")
+			@label.set_markup("   <small>#{@gui.management.get_name(id) + "#{users.length == 0 ? "" : " (#{users.length})"}"}</small>   ")
+			#~ @label.set_ellipsize(Pango::Layout::ELLIPSIZE_MIDDLE) 
+			#~ @label.set_size_request(50, -1)
 			
 			self.signal_connect('button-press-event') do |widget, event|
 				@gui.toggle_conversation(@id)
@@ -708,6 +723,7 @@ module LineGui
 		
 		def active(active = true)
 			if active
+				self.parent.reorder_child(self, 0) unless self.parent.nil?
 				self.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND_LABEL_ACTIVE))
 				@label.modify_fg(Gtk::StateType::NORMAL, Gdk::Color.parse(FOREGROUND_LABEL_ACTIVE))
 			else
@@ -721,6 +737,7 @@ module LineGui
 		def highlight(highlight = true)
 			@highlighted = highlight
 			if highlight
+				self.parent.reorder_child(self, 0) unless self.parent.nil?
 				self.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND_LABEL_HIGHLIGHT))
 				@label.modify_fg(Gtk::StateType::NORMAL, Gdk::Color.parse(FOREGROUND_LABEL_HIGHLIGHT))
 			else
