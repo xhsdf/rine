@@ -354,7 +354,7 @@ module LineGui
 
 
 	class LineGuiConversation
-		attr_reader :id, :swin, :chat_box, :gui, :label, :messages, :box, :active, :ctrl, :input_textview
+		attr_reader :id, :swin, :chat_box, :gui, :label, :messages, :box, :active, :ctrl, :input_textview, :scroll_to_bottom
 		
 		def initialize(id, gui)
 			@id = id
@@ -363,6 +363,7 @@ module LineGui
 			@active = false
 			@messages = {}
 			@ctrl = false
+			@scroll_to_bottom = true
 			
 			chat_ebox = Gtk::EventBox.new()
 			chat_ebox.add(@chat_box)
@@ -415,7 +416,7 @@ module LineGui
 				if event.keyval == 65507
 					@ctrl = false
 				end
-			end			
+			end
 			
 			@input_textview.buffer.signal_connect('insert-text') do |widget, iter, text, len|
 				if text == "\n" and not @ctrl
@@ -439,8 +440,19 @@ module LineGui
 			@swin.add(vport)
 			
 			@swin.vadjustment.signal_connect('value-changed') do |wdt, evt|
-				if @gui.window.active? and @active and (@swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size)
-					mark_last_read()
+				if @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
+					if @gui.window.active? and @active
+						mark_last_read()
+					end
+					@scroll_to_bottom = true
+				else
+					@scroll_to_bottom = false
+				end
+			end
+			
+			chat_ebox.signal_connect("size-allocate") do
+				if @scroll_to_bottom
+						scroll_to_bottom()
 				end
 			end
 			
@@ -473,9 +485,7 @@ module LineGui
 		end
 
 		
-		def add_message(message, log = false)			
-			scroll_to_bottom = @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
-			
+		def add_message(message, log = false)
 			scrollbar_pos = @swin.vadjustment.value
 			conv_message = LineGuiConversationMessage.new(message, self)
 			@messages[message.id] = conv_message
@@ -486,9 +496,6 @@ module LineGui
 			halign.add(message_box)
 			
 			halign.signal_connect("size-allocate") do
-				if scroll_to_bottom or log or conv_message.user_is_sender
-						scroll_to_bottom()
-				end
 				conv_message.fit()
 			end
 
