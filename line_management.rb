@@ -159,10 +159,16 @@ class Management
 	def poll_callback(operations)
 		operations.each do |op|
 			@revision = op.revision if op.revision > @revision
+			p op
+			
 			case op.type
 			when OpType::RECEIVE_MESSAGE
 				process_message(op.message, op.revision)
 			when OpType::SEND_MESSAGE
+				unless (op.message.contentType == ContentType::IMAGE)
+					process_message(op.message, op.revision)
+				end
+			when OpType::SEND_CONTENT
 				process_message(op.message, op.revision)
 			when OpType::NOTIFIED_UPDATE_PROFILE
 				puts "updated profile #{op.param1}"
@@ -204,7 +210,7 @@ class Management
 
 	def get_name(user_id)
 		if @users[user_id] == nil
-			@users[user_id] = "undef"
+			return "undef"
 		end
 
 		return @users[user_id]
@@ -299,5 +305,9 @@ class Management
 				raise "Could not deliver message"
 			end
 		end
+	end
+	
+	def upload_image(id, filename)
+		@lineservice.upload(id, filename)
 	end
 end

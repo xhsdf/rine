@@ -1,3 +1,5 @@
+$:.push('.')
+require 'line_service_upload'
 $:.push('gen-rb')
 require 'thrift'
 require 'talk_service'
@@ -206,7 +208,8 @@ class LineService
 			m.contentMetadata['STKTXT'] = "[null]"
 
 		elsif (message.image != nil)
-			raise "Not implemented yet"
+			m.contentType = ContentType::IMAGE
+			m.text = ""
 		else
 			m.contentType = ContentType::NONE
 			m.text = message.text
@@ -220,6 +223,12 @@ class LineService
 		end
 
 		m.id = response.id
+		
+		if (message.image != nil)
+			puts "upload image for #{m.id}"
+			upload(m.id, message.image)
+		end
+		
 		m.createdTime = response.createdTime
 		return m
 	end
@@ -228,7 +237,7 @@ class LineService
 		Thread.new do
 			begin
 				result = @p4service.service.fetchOperations(revision, 50)
-				#~ puts result
+				p result
 
 			rescue Timeout::Error
 				result = []
@@ -238,6 +247,13 @@ class LineService
 			end
 
 			callback.call(result)
+		end
+	end
+	
+	def upload(id, filename)
+		Thread.new do
+			uploadservice = LineServiceUpload.new(@authtoken, LINE_CLIENT)
+			uploadservice.upload(id, filename)
 		end
 	end
 end
