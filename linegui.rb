@@ -374,7 +374,7 @@ module LineGui
 			input_box = Gtk::HBox.new(false, 0)
 			input_buttons_box = Gtk::HBox.new(false, 0)
 				
-			sticker_button = Gtk::Button.new("sticker")
+			sticker_button = Gtk::Button.new(":)")
 			sticker_button_valignment = Gtk::Alignment.new(0, 1, 0, 0)
 			sticker_button_valignment.add(sticker_button)			
 			input_buttons_box.pack_start(sticker_button_valignment, false, false)
@@ -384,10 +384,10 @@ module LineGui
 			end
 			
 			
-			send_button = Gtk::Button.new("Send")
-			send_button_valignment = Gtk::Alignment.new(0, 1, 0, 0)
-			send_button_valignment.add(send_button)
-			input_buttons_box.pack_start(send_button_valignment, false, false)
+			#~ send_button = Gtk::Button.new("Send")
+			#~ send_button_valignment = Gtk::Alignment.new(0, 1, 0, 0)
+			#~ send_button_valignment.add(send_button)
+			#~ input_buttons_box.pack_start(send_button_valignment, false, false)
 			input_buttons_ebox = Gtk::EventBox.new()
 			input_buttons_ebox.add(input_buttons_box)
 			input_buttons_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
@@ -427,9 +427,9 @@ module LineGui
 			input_box.pack_start(@input_textview_frame, true, true, 0)
 			input_box.pack_start(input_buttons_ebox, false, false, 0)
 						
-			send_button.signal_connect('clicked') do |widget, event|
-				send_buffer(@input_textview.buffer)
-			end
+			#~ send_button.signal_connect('clicked') do |widget, event|
+				#~ send_buffer(@input_textview.buffer)
+			#~ end
 			
 			@swin = Gtk::ScrolledWindow.new
 			@swin.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC)
@@ -486,7 +486,6 @@ module LineGui
 
 		
 		def add_message(message, log = false)
-			scrollbar_pos = @swin.vadjustment.value
 			conv_message = LineGuiConversationMessage.new(message, self)
 			@messages[message.id] = conv_message
 			message_box = conv_message
