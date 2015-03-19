@@ -708,15 +708,15 @@ module LineGui
 		def add_read_by(user_id)
 			unless read_by.include? user_id
 				@read_by << user_id
-				unless @info_label.nil? # TODO?: Gtk::Tooltips listing each reader
+				unless @info_label.nil?
 					if @conversation.id == user_id
 						@info_label.set_markup("<small>read</small>   ")
 					else
 						@info_label.set_markup("<small>read by #{@read_by.size}</small>   ")
+						@info_label.set_tooltip_text("read by " + read_by.map{|u| @gui.management.get_name(u)}.join(", "))
 					end
 					@info_label.show()
 				end
-				puts "Message #{@id} got read by #{@gui.management.get_name(user_id)}: #{@message.text}"
 			end
 		end
 		
