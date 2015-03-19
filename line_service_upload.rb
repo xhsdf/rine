@@ -12,7 +12,8 @@ class LineServiceUpload
 		attr_accessor :ver, :oid, :type, :name, :size, :range
 		
 		def to_json
-			{'ver' => @ver, 'oid' => @oid, 'type' => @type, 'name' => @name, 'size' => @size, 'range' => @range}.to_json
+			{'ver' => @ver, 'oid' => @oid, 'type' => @type, 'name' => @name, 'size' => @size}.to_json
+			# 'range' => @range
 		end
 	end
 	
@@ -21,13 +22,15 @@ class LineServiceUpload
 		@client = client
 	end
 	
-	def create_header(id, filename, range)
+	def create_header(id, filename, size)
 		obs = OBSParam.new
 		obs.ver = "1.0"
 		obs.oid = id.to_s
 		obs.type = "image"
 		obs.name = filename
-		obs.range = range
+		#obs.range = "bytes 0-#{size - 1}/#{size}"
+		obs.size = size
+		puts obs.to_json
 		header = "\r\n--#{DELIMITER}\r\nContent-Disposition: form-data; name=\"params\"\r\n\r\n#{obs.to_json}\r\n"
 		header += "\r\n--#{DELIMITER}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"#{filename}\"\r\nContent-Type: application/octet-stream\r\n\r\n"
 		return header
@@ -39,8 +42,7 @@ class LineServiceUpload
 	
 	def create_data(id, filename)
 		image = open(filename, "rb") {|io| io.read}
-		range = "bytes 0-#{image.length - 1}/#{image.length}"
-		data = create_header(id, File.basename(filename), range)
+		data = create_header(id, File.basename(filename), image.length)
 		data += image
 		data += create_footer
 		return data
