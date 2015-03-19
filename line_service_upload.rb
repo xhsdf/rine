@@ -5,7 +5,7 @@ require 'net/http'
 require 'fileutils'
 
 class LineServiceUpload
-	LINE_UPLOAD_URI = URI.parse("http://os.line.naver.jp/talk/m/upload.nhn")
+	LINE_UPLOAD_URI = URI.parse("https://obs.line-apps.com:443/talk/m/upload.nhn")
 	DELIMITER = "----wpYGYCMYYCW--"
 	
 	class OBSParam

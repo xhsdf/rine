@@ -350,6 +350,30 @@ module LineGui
 			end
 			@sticker_menu.show_all()
 		end
+		
+		def show_file_chooser(conversation)
+		filter = Gtk::FileFilter.new
+		filter.add_pattern("*.jpg")
+		filter.add_pattern("*.jpeg")
+		filter.add_pattern("*.png")
+
+		chooser = Gtk::FileChooserDialog.new("Select a file",
+                                     nil,
+                                     Gtk::FileChooser::ACTION_OPEN,
+                                     nil,
+                                     [Gtk::Stock::OPEN, Gtk::Dialog::RESPONSE_ACCEPT], [Gtk::Stock::CANCEL, Gtk::Dialog::RESPONSE_CANCEL])
+		chooser.add_filter(filter)
+		
+		chooser.run do |response|
+			if response == Gtk::Dialog::RESPONSE_ACCEPT
+				image = LineMessage::Image.new(nil, chooser.filename, nil)
+				send_message(conversation.id, nil, nil, image)
+			end
+		end
+		
+		chooser.destroy
+
+		end
 	end
 
 
@@ -373,7 +397,18 @@ module LineGui
 			
 			input_box = Gtk::HBox.new(false, 0)
 			input_buttons_box = Gtk::HBox.new(false, 0)
-				
+			
+			send_button = Gtk::Button.new("F")
+			send_button_valignment = Gtk::Alignment.new(0, 1, 0, 0)
+			send_button_valignment.add(send_button)
+			input_buttons_box.pack_start(send_button_valignment, false, false)
+			send_button.signal_connect('clicked') do |widget, event|
+				@gui.show_file_chooser(self)
+			end
+			
+			
+			
+			
 			sticker_button = Gtk::Button.new(":)")
 			sticker_button_valignment = Gtk::Alignment.new(0, 1, 0, 0)
 			sticker_button_valignment.add(sticker_button)			

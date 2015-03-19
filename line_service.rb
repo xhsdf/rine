@@ -12,8 +12,9 @@ require 'openssl'
 class LineService
 
 	LINE_CLIENT = "DESKTOPWIN\t3.7.0\tWINDOWS\t5.1.2600-XP-x64"
-	LINE_BASE_URL = "http://gd2.line.naver.jp/"
+	LINE_BASE_URL = "https://gd2.line.naver.jp/"
 	LINE_OS_BASE_URL = "http://os.line.naver.jp/os"
+	LINE_OBS_BASE_URL = "https://obs-de.line-apps.com:443"
 	LINE_TALK_URI = URI.parse(LINE_BASE_URL + "api/v4/TalkService.do")
 	LINE_CERT_URI = URI.parse(LINE_BASE_URL + "Q")
 	LINE_P4_URI = URI.parse(LINE_BASE_URL + "P4")
@@ -140,18 +141,29 @@ class LineService
 		return rsa.public_encrypt(login).unpack('H*').first.upcase
 	end
 
-	def get_image(id, preview)
-		imguri = URI.parse("#{LINE_OS_BASE_URL}/m/#{id}#{preview ? "/preview" : ""}")
-		puts imguri.path		
-		#~ puts @authtoken
+	def get_image_preview(id)
+		imguri = URI.parse("#{LINE_OS_BASE_URL}/m/#{id}/preview")		
 		req = Net::HTTP::Get.new(imguri.path)
 		req['X-Line-Application'] = LINE_CLIENT
 		req['X-Line-Access'] = @authtoken
-		puts "start request"
+		puts "Download preview #{imguri}"
 		Net::HTTP.start(imguri.hostname, imguri.port) do |http|
 			return http.request(req).body
 		end
-	end	
+	end
+	
+	def get_image_obs(id)
+		imguri = URI.parse(LINE_OBS_BASE_URL)	
+		req = Net::HTTP::Get.new("/talk/m/download.nhn?ver=1.0&oid=#{id}")
+		req['X-Line-Application'] = LINE_CLIENT
+		req['X-Line-Access'] = @authtoken
+		puts "Download obs #{imguri}"
+		Net::HTTP.start(imguri.hostname, imguri.port) do |http|
+			return http.request(req).body
+		end
+	end
+	
+	
 
 	def get_groupids_joined
 		return @talkservice.service.getGroupIdsJoined
@@ -209,13 +221,10 @@ class LineService
 
 		elsif (message.image != nil)
 			m.contentType = ContentType::IMAGE
-			m.text = ""
 		else
 			m.contentType = ContentType::NONE
 			m.text = message.text
 		end
-		
-		p m
 		
 		response = @talkservice.service.sendMessage(0, m)
 		if (response.nil? || response.id == "0")
@@ -225,20 +234,25 @@ class LineService
 		m.id = response.id
 		
 		if (message.image != nil)
-			puts "upload image for #{m.id}"
-			upload(m.id, message.image)
+			puts "Upload image for #{m.id}"
+			upload(m.id, message.image.url)
 		end
 		
 		m.createdTime = response.createdTime
 		return m
+	end
+	
+	def upload(id, filename)
+		Thread.new do
+			uploadservice = LineServiceUpload.new(@authtoken, LINE_CLIENT)
+			uploadservice.upload(id, filename)
+		end
 	end
 
 	def start_poll(revision, callback)
 		Thread.new do
 			begin
 				result = @p4service.service.fetchOperations(revision, 50)
-				p result
-
 			rescue Timeout::Error
 				result = []
 			rescue Exception => e
@@ -247,13 +261,6 @@ class LineService
 			end
 
 			callback.call(result)
-		end
-	end
-	
-	def upload(id, filename)
-		Thread.new do
-			uploadservice = LineServiceUpload.new(@authtoken, LINE_CLIENT)
-			uploadservice.upload(id, filename)
 		end
 	end
 end

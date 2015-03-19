@@ -159,8 +159,7 @@ class Management
 	def poll_callback(operations)
 		operations.each do |op|
 			@revision = op.revision if op.revision > @revision
-			p op
-			
+		
 			case op.type
 			when OpType::RECEIVE_MESSAGE
 				process_message(op.message, op.revision)
@@ -291,7 +290,14 @@ class Management
 			unless File.directory?(path)
 				FileUtils.mkdir_p(path)
 			end
-			File.open(filename, "wb") {|f| f.write(@lineservice.get_image(message.id, preview))}
+			
+			image = preview ? @lineservice.get_image_preview(message.id) : @lineservice.get_image_obs(message.id)
+			unless image.nil?
+				File.open(filename, "wb") { |f| f.write(image) }
+			else
+				puts "Image #{message.id} not available"
+				return nil
+			end
 		end
 		return filename
 	end
