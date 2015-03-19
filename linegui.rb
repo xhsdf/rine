@@ -521,6 +521,7 @@ module LineGui
 		
 		def add_message(message, log = false)
 			@new_messages << message
+			draw_new_messages() if @active
 		end
 
 
