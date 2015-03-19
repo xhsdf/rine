@@ -378,7 +378,7 @@ module LineGui
 
 
 	class LineGuiConversation
-		attr_reader :id, :swin, :chat_box, :gui, :label, :messages, :box, :active, :ctrl, :input_textview, :scroll_to_bottom
+		attr_reader :id, :swin, :chat_box, :gui, :label, :messages, :new_messages, :drawing_messages, :box, :active, :ctrl, :input_textview, :scroll_to_bottom
 		
 		def initialize(id, gui)
 			@id = id
@@ -386,8 +386,10 @@ module LineGui
 			@chat_box = Gtk::VBox.new(false, 2)
 			@active = false
 			@messages = {}
+			@new_messages = []
 			@ctrl = false
 			@scroll_to_bottom = true
+			@drawing_messages = false
 			
 			chat_ebox = Gtk::EventBox.new()
 			chat_ebox.add(@chat_box)
@@ -405,9 +407,6 @@ module LineGui
 			send_button.signal_connect('clicked') do |widget, event|
 				@gui.show_file_chooser(self)
 			end
-			
-			
-			
 			
 			sticker_button = Gtk::Button.new(":)")
 			sticker_button_valignment = Gtk::Alignment.new(0, 1, 0, 0)
@@ -521,6 +520,26 @@ module LineGui
 
 		
 		def add_message(message, log = false)
+			@new_messages << message
+		end
+
+
+		def draw_new_messages()
+			return if @drawing_messages
+			@drawing_messages = true
+			begin
+				until @new_messages.empty?
+					draw_message(@new_messages.shift())
+				end
+			rescue Exception => e
+				puts e
+			ensure
+				@drawing_messages = false
+			end
+		end
+		
+		
+		def draw_message(message)
 			conv_message = LineGuiConversationMessage.new(message, self)
 			@messages[message.id] = conv_message
 			message_box = conv_message
@@ -552,6 +571,7 @@ module LineGui
 		def set_active(active)
 			@active = active
 			if @active
+				draw_new_messages()
 				mark_last_read()
 				@input_textview.grab_focus
 			end
