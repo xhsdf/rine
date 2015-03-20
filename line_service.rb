@@ -257,6 +257,7 @@ class LineService
 				result = []
 			rescue Exception => e
 				puts e
+				puts e.backtrace
 				result = []
 			end
 
