@@ -550,6 +550,9 @@ module LineGui
 			halign.add(message_box)
 			
 			halign.signal_connect("size-allocate") do
+				while (Gtk.events_pending?)
+					Gtk.main_iteration
+				end
 				conv_message.fit()
 			end
 
