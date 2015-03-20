@@ -311,7 +311,8 @@ module LineGui
 			end
 		
 		
-			@chat_tab.pack_start(@conversations[id].box, true, true)
+			@chat_tab.pack_start(@conversations[id].box, true, true) if @conversations[id].box.parent.nil?
+			@conversations[id].box.show()
 			@conversations[id].set_active(true)
 			@conversations[id].label.highlight(false)
 			@conversations[id].label.active()
@@ -322,10 +323,8 @@ module LineGui
 		end
 		
 		
-		def close_conversation(id) # TODO
-			if @conversations[id].box.parent == @chat_tab
-				@chat_tab.remove(@conversations[id].box)
-			end
+		def close_conversation(id)
+			@conversations[id].box.hide()
 			@conversations[id].set_active(false)
 			@conversations[id].label.active(false)
 		end
@@ -497,6 +496,7 @@ module LineGui
 			@box.set_size_request(0, -1)
 			
 			@box.show_all()
+			@box.hide()
 		end
 		
 		
@@ -565,7 +565,7 @@ module LineGui
 
 		
 		def is_open?()
-			return @box.parent != nil
+			return @box.visible?
 		end
 		
 		
