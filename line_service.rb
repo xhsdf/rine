@@ -202,9 +202,16 @@ class LineService
 	end
 
 	def send_chat_checked(consumerid, messageid)
-		@talkservice.service.sendChatChecked(0, consumerid, messageid)
+		get_new_service().service.sendChatChecked(0, consumerid, messageid)
 		puts "sendchecked"
 	end
+	
+	def get_new_service()
+		service = ThriftService.new(LINE_TALK_URI, TalkService::Client)
+		service.set_token(@authtoken)
+		return service
+	end
+	
 
 	def send_message(message)
 		m = Message.new
@@ -226,7 +233,7 @@ class LineService
 			m.text = message.text
 		end
 		
-		response = @talkservice.service.sendMessage(0, m)
+		response = get_new_service().service.sendMessage(0, m)
 		if (response.nil? || response.id == "0")
 			return nil
 		end
