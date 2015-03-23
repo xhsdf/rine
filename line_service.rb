@@ -202,7 +202,7 @@ class LineService
 	end
 
 	def send_chat_checked(consumerid, messageid)
-		get_new_service().service.sendChatChecked(0, consumerid, messageid)
+		@talkservice.service.sendChatChecked(0, consumerid, messageid)
 		puts "sendchecked"
 	end
 	
