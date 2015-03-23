@@ -550,9 +550,6 @@ module LineGui
 			halign.add(message_box)
 			
 			halign.signal_connect("size-allocate") do
-				while (Gtk.events_pending?)
-					Gtk.main_iteration
-				end
 				conv_message.fit()
 			end
 
@@ -724,7 +721,7 @@ module LineGui
 		def mark_read()
 			unless @marked or @user_is_sender
 				@marked = true
-				@gui.management.mark_message_read(@conversation.id, @id)
+				Thread.new do @gui.management.mark_message_read(@conversation.id, @id) end
 			end
 		end
 		
