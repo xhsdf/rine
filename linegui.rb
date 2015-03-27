@@ -226,7 +226,7 @@ module LineGui
 			
 			@window.signal_connect("notify::is-active") do
 				if @window.active?
-					conversations.values.select do |conv| conv.active end.each do |conv| conv.mark_last_read() end
+					conversations.values.select do |conv| conv.active and conv.scrolled_to_bottom end.each do |conv| conv.mark_last_read() end
 					#~ puts "active!"
 				else
 					#~ puts "inactive!"
@@ -274,14 +274,14 @@ module LineGui
 		end
 		
 
-		def add_message(message, log = false)
+		def add_message(message)
 			return if @closed
 			id = @management.get_conversation_id(message.from, message.to)
 			
 			add_user(id)
-			@conversations[id].add_message(message, log)
+			@conversations[id].add_message(message)
 			
-			unless log
+			unless message.log
 				if @conversations[id] != nil and not @conversations[id].active
 					@conversations[id].label.highlight()
 				end
@@ -377,7 +377,7 @@ module LineGui
 
 
 	class LineGuiConversation
-		attr_reader :id, :swin, :chat_box, :gui, :label, :messages, :new_messages, :drawing_messages, :box, :active, :ctrl, :input_textview, :scroll_to_bottom
+		attr_reader :id, :swin, :chat_box, :gui, :label, :messages, :new_messages, :drawing_messages, :box, :active, :ctrl, :input_textview, :scrolled_to_bottom
 		
 		def initialize(id, gui)
 			@id = id
@@ -387,7 +387,7 @@ module LineGui
 			@messages = {}
 			@new_messages = []
 			@ctrl = false
-			@scroll_to_bottom = true
+			@scrolled_to_bottom = true
 			@drawing_messages = false
 			
 			chat_ebox = Gtk::EventBox.new()
@@ -474,17 +474,17 @@ module LineGui
 			
 			@swin.vadjustment.signal_connect('value-changed') do |wdt, evt|
 				if @swin.vadjustment.value >= @swin.vadjustment.upper - @swin.vadjustment.page_size
-					if @gui.window.active? and @active
+					if @gui.window.active? and @active and @new_messages.empty?
 						mark_last_read()
 					end
-					@scroll_to_bottom = true
+					@scrolled_to_bottom = true
 				else
-					@scroll_to_bottom = false
+					@scrolled_to_bottom = false
 				end
 			end
 			
 			chat_ebox.signal_connect("size-allocate") do
-				if @scroll_to_bottom
+				if @scrolled_to_bottom
 						scroll_to_bottom()
 				end
 			end
@@ -519,7 +519,7 @@ module LineGui
 		end
 
 		
-		def add_message(message, log = false)
+		def add_message(message)
 			@new_messages << message
 			draw_new_messages() if @active
 		end

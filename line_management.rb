@@ -42,7 +42,7 @@ class Management
 
 
 	def add_message(message)
-		@gui.add_message(message, false)
+		@gui.add_message(message)
 		conv_id = get_conversation_id(message.from, message.to)
 		if conversations[conv_id].nil?
 			conversations[conv_id] = []
@@ -197,7 +197,7 @@ class Management
 	
 	def add_log(user_id)
 		@logger.get_messages(user_id).each do |message|
-			@gui.add_message(message, true)
+			@gui.add_message(message)
 		end
 	end
 

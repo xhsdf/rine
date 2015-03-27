@@ -1,9 +1,9 @@
 module LineMessage
 	class Message
-		attr_reader :from, :to, :id, :timestamp, :text, :sticker, :image, :revision
+		attr_reader :from, :to, :id, :timestamp, :text, :sticker, :image, :revision, :log
 
-		def initialize(from, to, id, timestamp, text = nil, sticker = nil, image = nil, revision = nil)
-			@from, @to, @id, @timestamp, @text, @sticker, @image,  @revision = from, to, id, timestamp, text, sticker, image, revision
+		def initialize(from, to, id, timestamp, text = nil, sticker = nil, image = nil, revision = nil, log = false)
+			@from, @to, @id, @timestamp, @text, @sticker, @image,  @revision, @log = from, to, id, timestamp, text, sticker, image, revision, log
 		end
 	end
 

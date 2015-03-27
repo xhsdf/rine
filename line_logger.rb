@@ -55,7 +55,7 @@ module LineLogger
 							image = LineMessage::Image.new(image.attributes["id"], image.attributes["url"], image.attributes["preview_url"])
 						end
 						
-						messages << LineMessage::Message.new(from, to, id, timestamp.to_i, text.nil? ? text : text.gsub("[\\n]", "\n"), sticker, image, revision)
+						messages << LineMessage::Message.new(from, to, id, timestamp.to_i, text.nil? ? text : text.gsub("[\\n]", "\n"), sticker, image, revision, true)
 						
 						unless revision.nil?
 							if @revision.nil? or @revision < revision
