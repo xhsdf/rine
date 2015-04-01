@@ -101,8 +101,6 @@ module LineGui
 			expander.signal_connect("notify::expanded") do
 				if expander.expanded?
 					load_image_box()
-				else
-					#~ @expander.set_size_request(-1, 20)
 				end
 			end
 			self.pack_start(@expander, false, false, 2)
@@ -314,9 +312,6 @@ module LineGui
 			@conversations[id].set_active(true)
 			@conversations[id].label.highlight(false)
 			@conversations[id].label.active()
-			# refresh new messages in inactive windows
-			@conversations[id].swin.hide()
-			@conversations[id].swin.show()
 			@sticker_menu.set_conversation(@conversations[id]) unless @sticker_menu.nil?
 		end
 		
@@ -335,6 +330,7 @@ module LineGui
 		
 		def add_sticker_set(sticker_set)
 			@sticker_sets << sticker_set
+			@sticker_sets.sort_by! do |set| set.name end
 		end
 		
 		
@@ -349,27 +345,22 @@ module LineGui
 		end
 		
 		def show_file_chooser(conversation)
-		filter = Gtk::FileFilter.new
-		filter.add_pattern("*.jpg")
-		filter.add_pattern("*.jpeg")
-		filter.add_pattern("*.png")
+			filter = Gtk::FileFilter.new
+			filter.add_pattern("*.jpg")
+			filter.add_pattern("*.jpeg")
+			filter.add_pattern("*.png")
 
-		chooser = Gtk::FileChooserDialog.new("Select a file",
-                                     nil,
-                                     Gtk::FileChooser::ACTION_OPEN,
-                                     nil,
-                                     [Gtk::Stock::OPEN, Gtk::Dialog::RESPONSE_ACCEPT], [Gtk::Stock::CANCEL, Gtk::Dialog::RESPONSE_CANCEL])
-		chooser.add_filter(filter)
-		
-		chooser.run do |response|
-			if response == Gtk::Dialog::RESPONSE_ACCEPT
-				image = LineMessage::Image.new(nil, chooser.filename, nil)
-				send_message(conversation.id, nil, nil, image)
+			chooser = Gtk::FileChooserDialog.new("Select a file", nil, Gtk::FileChooser::ACTION_OPEN, nil, [Gtk::Stock::OPEN, Gtk::Dialog::RESPONSE_ACCEPT], [Gtk::Stock::CANCEL, Gtk::Dialog::RESPONSE_CANCEL])
+			chooser.add_filter(filter)
+			
+			chooser.run do |response|
+				if response == Gtk::Dialog::RESPONSE_ACCEPT
+					image = LineMessage::Image.new(nil, chooser.filename, nil)
+					send_message(conversation.id, nil, nil, image)
+				end
 			end
-		end
-		
-		chooser.destroy
-
+			
+			chooser.destroy()
 		end
 	end
 
@@ -413,12 +404,7 @@ module LineGui
 				@gui.show_sticker_menu()
 				@gui.sticker_menu.set_conversation(self)
 			end
-			
-			
-			#~ send_button = Gtk::Button.new("Send")
-			#~ send_button_valignment = Gtk::Alignment.new(0, 1, 0, 0)
-			#~ send_button_valignment.add(send_button)
-			#~ input_buttons_box.pack_start(send_button_valignment, false, false)
+
 			input_buttons_ebox = Gtk::EventBox.new()
 			input_buttons_ebox.add(input_buttons_box)
 			input_buttons_ebox.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
@@ -457,10 +443,6 @@ module LineGui
 			
 			input_box.pack_start(@input_textview_frame, true, true, 0)
 			input_box.pack_start(input_buttons_ebox, false, false, 0)
-						
-			#~ send_button.signal_connect('clicked') do |widget, event|
-				#~ send_buffer(@input_textview.buffer)
-			#~ end
 			
 			@swin = Gtk::ScrolledWindow.new
 			@swin.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC)

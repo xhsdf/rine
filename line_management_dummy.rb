@@ -29,7 +29,7 @@ class Management
 	end
 	
 	def add_message(message)
-			@gui.add_message(message, false)
+			@gui.add_message(message)
 			@logger.add_message(message)
 	end
 	
@@ -55,12 +55,35 @@ class Management
 		@logger = LineLogger::Logger.new(self, "./logs")
 		Thread.new do gui.run() end
 		
-		gui.add_user("a0")
 		gui.add_user("a4")
+		gui.add_user("a0")
 		add_log("a0")
 		add_log("a4")
 		
 		@gui.add_sticker_set(get_sticker_set(3897, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
+		@gui.add_sticker_set(get_sticker_set(2999, 1))
 		@gui.add_sticker_set(get_sticker_set(2999, 1))
 		#~ @gui.add_sticker_set(get_sticker_set(3000, 1))
 		#~ @gui.add_sticker_set(get_sticker_set(3001, 1))
@@ -116,7 +139,7 @@ class Management
 			add_message(LineMessage::Message.new("a0", "a2", (message_id += 1), Time.now.to_i, "Poi?", nil, nil))
 			add_message(LineMessage::Message.new("a0", "a2", (message_id += 1), Time.now.to_i, "www.crunchyroll.com/anime-news/2015/02/25/video-kancolle-character-designer-kujou-ichiso-demonstrates-live-drawing", nil, nil))
 			add_message(LineMessage::Message.new("a0", "a2", (message_id += 1), Time.now.to_i, "http://www.crunchyroll.com/anime-news/2015/02/25/video-kancolle-character-designer-kujou-ichiso-demonstrates-live-drawing", nil, nil))
-			add_message(LineMessage::Message.new("a2", "a0", (message_id += 1), Time.now.to_i, "http://www.crunchyroll.com/anime-news/2015/02/25/video-kancolle-character-designer-kujou-ichiso-demonstrates-live-drawing", nil, nil))
+			#~ add_message(LineMessage::Message.new("a2", "a0", (message_id += 1), Time.now.to_i, "http://www.crunchyroll.com/anime-news/2015/02/25/video-kancolle-character-designer-kujou-ichiso-demonstrates-live-drawing", nil, nil))
 			sleep 1
 			#~ add_message(LineMessage::Message.new("a2", "a0", (message_id += 1), Time.now.to_i, "Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? Poi? ", nil, nil))
 		end
@@ -128,7 +151,7 @@ class Management
 	
 	def add_log(user_id)
 		@logger.get_messages(user_id).each do |message|
-			@gui.add_message(message, true)
+			@gui.add_message(message)
 		end
 		#~ @gui.conversations[user_id].scroll_to_bottom()
 	end
