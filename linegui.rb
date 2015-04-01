@@ -250,9 +250,7 @@ module LineGui
 			vport.add(tab_box_ebox)
 			swin.add(vport)
 			
-			
-			
-			main_box.pack_start(swin, false, false, 10)
+			main_box.pack_start(swin, false, false, 0)
 			main_box.pack_start(@chat_tab, true, true, 0)
 			
 			@window.add(main_box)
