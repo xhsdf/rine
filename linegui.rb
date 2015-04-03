@@ -203,7 +203,7 @@ module LineGui
 	
 
 	class LineGuiMain
-		attr_reader :management, :conversations, :tab_box, :chat_tab, :sticker_sets, :sticker_menu, :closed, :window
+		attr_reader :management, :conversations, :tab_box, :chat_tab, :sticker_sets, :sticker_menu, :closed, :window, :unread_count
 		
 		def initialize(management)
 			@management = management
@@ -213,8 +213,10 @@ module LineGui
 			@sticker_sets = []
 			@closed = false
 			@sticker_menu = nil
+			@unread_count = 0
 			
-			@window = Gtk::Window.new("rine alpha")
+			@window = Gtk::Window.new()
+			
 			#~ Gtk::Settings.default.gtk_im_module="ime"
 
 			@window.signal_connect("destroy") do
@@ -224,6 +226,7 @@ module LineGui
 			
 			@window.signal_connect("notify::is-active") do
 				if @window.active?
+					reset_unread()
 					conversations.values.select do |conv| conv.active and conv.scrolled_to_bottom end.each do |conv| conv.mark_last_read() end
 					#~ puts "active!"
 				else
@@ -255,6 +258,7 @@ module LineGui
 			
 			@window.modify_bg(Gtk::StateType::NORMAL, Gdk::Color.parse(BACKGROUND))
 			
+			set_title()
 			@window.show_all()
 		end
 		
@@ -272,6 +276,8 @@ module LineGui
 
 		def add_message(message)
 			return if @closed
+			
+			add_unread() unless @window.active? or message.log
 			id = @management.get_conversation_id(message.from, message.to)
 			
 			add_user(id)
@@ -282,6 +288,23 @@ module LineGui
 					@conversations[id].label.highlight()
 				end
 			end
+		end
+		
+		
+		def add_unread()
+			@unread_count += 1
+			set_title()
+		end
+		
+		
+		def reset_unread()
+			@unread_count = 0
+			set_title()
+		end
+		
+		
+		def set_title()
+			@window.title = "rine#{@unread_count > 0 ? " (#{@unread_count})" : ""}"
 		end
 		
 		
