@@ -598,6 +598,7 @@ module LineGui
 			sender_name = @gui.management.get_name(message.from)
 			send_time = Time.at(message.timestamp).getlocal().strftime("%H:%M")
 			@info_label = nil
+			@original_width = nil
 		
 			sender_info = "  [#{send_time}] #{sender_name}"
 			if @user_is_sender
@@ -700,10 +701,11 @@ module LineGui
 
 			self.show_all()
 		end
+
 		
-		def has_one_line()
-			return @label.allocation.height < 20 # line height = 13 ?
-		end
+		#~ def has_one_line()
+			#~ return @label.allocation.height < 20 # line height = 13 ?
+		#~ end
 		
 		
 		def fit()
@@ -711,11 +713,20 @@ module LineGui
 				@resizing = true
 				width = @gui.chat_tab.allocation.width - 70 - (2 * AVATAR_MARGIN)
 				
+				if @original_width.nil? and @label.allocation.width > 1
+					@original_width = @label.allocation.width
+				end
 				if @label.allocation.width > width
 					@label.set_size_request(width, -1)
-				elsif @label.allocation.width < width and not has_one_line()
-					@label.set_size_request(@label.allocation.width + 10, -1)
+				elsif @label.allocation.width < width and not @original_width.nil?
+					@label.set_size_request(@original_width, -1)
 				end
+				
+				#~ if @label.allocation.width > width
+					#~ @label.set_size_request(width, -1)
+				#~ elsif @label.allocation.width < width and not has_one_line()
+					#~ @label.set_size_request(@label.allocation.width + 10, -1)
+				#~ end
 				@resizing = false
 			end
 		end
