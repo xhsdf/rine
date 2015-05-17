@@ -389,7 +389,7 @@ module LineGui
 
 
 	class LineGuiConversation
-		attr_reader :id, :swin, :chat_box, :gui, :label, :messages, :new_messages, :drawing_messages, :box, :active, :ctrl, :input_textview, :scrolled_to_bottom
+		attr_reader :id, :swin, :chat_box, :gui, :label, :messages, :new_messages, :drawing_messages, :box, :active, :ctrl, :input_textview, :scrolled_to_bottom, :last_date
 		
 		def initialize(id, gui)
 			@id = id
@@ -401,6 +401,7 @@ module LineGui
 			@ctrl = false
 			@scrolled_to_bottom = true
 			@drawing_messages = false
+			@last_date = nil
 			
 			chat_ebox = Gtk::EventBox.new()
 			chat_ebox.add(@chat_box)
@@ -557,7 +558,29 @@ module LineGui
 			end
 
 			halign.show_all()
+
+			time = Time.at(message.timestamp).getlocal()
+			date = Date.parse(time.strftime("%Y-%m-%d"))
+			if @last_date.nil? or date > @last_date
+				@last_date = date
+				add_separator(time.strftime("%a, %b %d "))
+			end
+			
 			@chat_box.pack_start(halign, false, false, MESSAGE_VMARGIN)
+		end
+		
+		
+		def add_separator(text)
+			separator =  Gtk::HSeparator.new()
+			separator.show_all()
+			@chat_box.pack_start(separator, false, false, 0)
+			
+			halign =  Gtk::Alignment.new(0.5, 0, 0, 0)
+			halign.add(Gtk::Label.new(text))
+			halign.show_all()
+			@chat_box.pack_start(halign, false, false, MESSAGE_VMARGIN)
+			
+			return separator, halign
 		end
 		
 		
